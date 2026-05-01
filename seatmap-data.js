@@ -10,17 +10,13 @@
   ];
 
   const items = [];
+  function addItem(item) { items.push(item); }
 
-  function addItem(item) {
-    items.push(item);
-  }
-
-  function addSeatGroup({ row, nums, x, y, w = 14, h = 17, gap = 2, kind = 'main' }) {
+  function addSeatGroup({ row, nums, x, y, w = 14, h = 17, gap = 2 }) {
     nums.forEach((num, index) => {
       addItem({
         id: `main-r${row}-s${num}`,
         type: 'seat',
-        kind,
         zone: 'main',
         row,
         number: num,
@@ -32,14 +28,12 @@
     });
   }
 
-  function addDarkSeat(id, label, x, y, number, zone) {
+  function addMark(id, x, y, number, zone) {
     addItem({
       id,
-      type: 'seat',
-      kind: 'dark',
-      label,
-      number,
+      type: 'mark',
       zone,
+      number,
       x,
       y,
       w: 16,
@@ -47,7 +41,6 @@
     });
   }
 
-  // Main seated area.
   addSeatGroup({ row: 1, nums: [4,5,6,7,8,9], x: 90, y: 281 });
   addSeatGroup({ row: 1, nums: [13,14,15,16,17,18,19,20], x: 261, y: 281 });
   addSeatGroup({ row: 1, nums: [24,25,26,27,28,29,30], x: 436, y: 281 });
@@ -62,32 +55,30 @@
 
   addSeatGroup({ row: 4, nums: [2,3,4,5,6,7,8,9], x: 67, y: 389 });
   addSeatGroup({ row: 4, nums: [10,11,12,13,14,15,16,17,18,19,20,21,22,23], x: 214, y: 389 });
-  addSeatGroup({ row: 4, nums: [25,26,27,28,29,30], x: 457, y: 389 });
+  addSeatGroup({ row: 4, nums: [25,26,27,28,29], x: 457, y: 389 });
 
   addSeatGroup({ row: 5, nums: [1,2,3,4,5,6,7,8,9], x: 53, y: 425 });
   addSeatGroup({ row: 5, nums: [10,11,12,13,14,15,16,17,18,19,20,21,22,23], x: 214, y: 425 });
-  addSeatGroup({ row: 5, nums: [25,26,27,28,29,30], x: 457, y: 425 });
+  addSeatGroup({ row: 5, nums: [25,26,27,28,29], x: 457, y: 425 });
 
   addSeatGroup({ row: 6, nums: [1,2,3,4,5,6,7,8,9], x: 53, y: 461 });
   addSeatGroup({ row: 6, nums: [10,11,12,13,14,15,16,17,18,19,20,21,22,23], x: 214, y: 461 });
-  addSeatGroup({ row: 6, nums: [25,26,27,28,29,30], x: 457, y: 461 });
+  addSeatGroup({ row: 6, nums: [25,26,27,28,29], x: 457, y: 461 });
 
   addSeatGroup({ row: 7, nums: [1,2,3,4,5,6,7,8,9], x: 53, y: 497 });
-  addSeatGroup({ row: 7, nums: [25,26,27,28,29,30], x: 457, y: 497 });
+  addSeatGroup({ row: 7, nums: [25,26,27,28,29], x: 457, y: 497 });
 
-  // Rear stage-side row and rear main row.
   const rearXs = [103,133,163,193,223,253,283,313,343,373,403,433,463,493,523];
   const rearNums = [7,6,5,4,3,2,1,0,1,2,3,4,5,6,7];
   rearXs.forEach((x, index) => {
-    addDarkSeat(`rear-stage-${index + 1}`, `rear stage ${rearNums[index]}`, x, 55, rearNums[index], 'rear-stage');
-    addDarkSeat(`rear-main-${index + 1}`, `rear main ${rearNums[index]}`, x, 214, rearNums[index], 'rear-main');
+    addMark(`rear-stage-${index + 1}`, x, 55, rearNums[index], 'rear-stage');
+    addMark(`rear-main-${index + 1}`, x, 214, rearNums[index], 'rear-main');
   });
 
-  // Side seats 8–12.
   const sideY = [243, 268, 293, 329, 380];
   [8,9,10,11,12].forEach((num, index) => {
-    addDarkSeat(`left-side-${num}`, `left side ${num}`, 49, sideY[index], num, 'left-side');
-    addDarkSeat(`right-side-${num}`, `right side ${num}`, 575, sideY[index], num, 'right-side');
+    addMark(`left-side-${num}`, 49, sideY[index], num, 'left-side');
+    addMark(`right-side-${num}`, 575, sideY[index], num, 'right-side');
   });
 
   function addStandingArea({ area, x, y, w, h, rows, cols }) {
@@ -99,7 +90,6 @@
         addItem({
           id: `standing-${area.toLowerCase()}-r${r}-c${c}`,
           type: 'standing',
-          kind: 'standing',
           area,
           zone: `standing-${area.toLowerCase()}`,
           row: r,
@@ -120,7 +110,7 @@
   addStandingArea({ area: 'E', x: 452, y: 548, w: 104, h: 20, rows: 1, cols: 6 });
 
   window.SEATMAP_DATA = {
-    version: '2.0.0',
+    version: '2.1.0',
     width: 640,
     height: 760,
     exportFooterHeight: 134,
