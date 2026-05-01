@@ -39,21 +39,16 @@
 
   function bindModalFailsafe() {
     if (!els.modal) return;
-
-    // Hard reset: the export preview must never be visible on first page load.
     els.modal.hidden = true;
-
     if (els.modalCloseBtn) {
       els.modalCloseBtn.addEventListener('click', event => {
         event.preventDefault();
         closeModal();
       });
     }
-
     els.modal.addEventListener('click', event => {
       if (event.target === els.modal) closeModal();
     });
-
     document.addEventListener('keydown', event => {
       if (event.key === 'Escape' && !els.modal.hidden) closeModal();
     });
@@ -64,10 +59,11 @@
     state.i18n = await loadI18n();
     readHash();
     buildPerformanceOptions();
-    renderOverlay();
     bindEvents();
     applyLanguage();
+    renderOverlay();
     updateUI();
+    resetMapView();
   }
 
   function detectLanguage() {
@@ -80,29 +76,13 @@
   }
 
   async function loadI18n() {
-    const fallback = {
-      ja: {
-        noSelection: 'まだ選択されていません',
-        selectHint: '座席または立見エリアをタップしてください。',
-        selectedHint: 'もう一度別の位置を選ぶと上書きされます。',
-        mySeat: '私の位置',
-        performanceLabel: '公演名',
-        nameLabel: '表示名',
-        downloadNoSelection: '先に座席または立見位置を選択してください。',
-        copied: 'リンクをコピーしました。',
-        copyFailed: 'コピーできませんでした。URLを手動でコピーしてください。',
-        cleared: '選択を解除しました。',
-        exportTitle: 'AKB48 Seat Memo',
-        arrowText: 'ここ！'
-      }
-    };
     try {
       const res = await fetch('langs.json', { cache: 'no-store' });
       if (!res.ok) throw new Error('langs.json missing');
       return await res.json();
     } catch (error) {
       console.warn(error);
-      return fallback;
+      return { ja: {} };
     }
   }
 
@@ -153,6 +133,7 @@
       state.lang = els.langSelect.value;
       localStorage.setItem('seatmapLang', state.lang);
       applyLanguage();
+      renderOverlay();
       syncHash();
       updateUI();
     });
@@ -163,38 +144,14 @@
     });
 
     els.downloadBtn.addEventListener('click', exportImage);
-
-    els.clearBtn.addEventListener('click', () => {
-      state.selectedId = null;
-      syncHash();
-      renderSelection();
-      updateUI();
-      showToast(t('cleared'));
-    });
-
-    els.copyLinkBtn.addEventListener('click', async () => {
-      syncHash();
-      try {
-        await navigator.clipboard.writeText(window.location.href);
-        showToast(t('copied'));
-      } catch (error) {
-        console.warn(error);
-        showToast(t('copyFailed'));
-      }
-    });
-
-    els.zoomResetBtn.addEventListener('click', () => {
-      els.mapScroll.scrollTo({ left: 0, top: 0, behavior: 'smooth' });
-    });
-
-    els.modalCloseBtn.addEventListener('click', closeModal);
-    els.modal.addEventListener('click', event => {
-      if (event.target === els.modal) closeModal();
-    });
+    els.clearBtn.addEventListener('click', clearSelection);
+    els.copyLinkBtn.addEventListener('click', copyShareLink);
+    els.zoomResetBtn.addEventListener('click', resetMapView);
   }
 
   function applyLanguage() {
-    els.html.lang = state.lang === 'zh' ? 'zh-Hant' : state.lang;
+    els.html.lang = state.lang;
+    document.title = t('exportTitle');
     els.langSelect.value = state.lang;
 
     document.querySelectorAll('[data-i18n]').forEach(node => {
@@ -205,25 +162,50 @@
     });
   }
 
-  function renderOverlay() {
-    els.overlay.innerHTML = '';
-    els.overlay.appendChild(createDefs());
+  function resetMapView() {
+    const targetLeft = Math.max(0, (els.mapScroll.scrollWidth - els.mapScroll.clientWidth) / 2);
+    els.mapScroll.scrollTo({ left: targetLeft, top: 0, behavior: 'smooth' });
+  }
 
-    const standingLayer = svgEl('g', { id: 'standingLayer' });
-    const hitLayer = svgEl('g', { id: 'hitLayer' });
+  function copyShareLink() {
+    syncHash();
+    const url = window.location.href;
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(url).then(() => showToast(t('copied'))).catch(() => showToast(t('copyFailed')));
+    } else {
+      showToast(t('copyFailed'));
+    }
+  }
+
+  function clearSelection() {
+    state.selectedId = null;
+    syncHash();
+    renderSelection();
+    updateUI();
+    showToast(t('cleared'));
+  }
+
+  function renderOverlay() {
+    const svg = els.overlay;
+    svg.innerHTML = '';
+    svg.setAttribute('viewBox', `0 0 ${SEATMAP_DATA.width} ${SEATMAP_DATA.height}`);
+    svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+
+    svg.appendChild(createDefs());
+    svg.appendChild(drawBaseMap());
+
+    const seatLayer = svgEl('g', { id: 'seatLayer' });
     const selectionLayer = svgEl('g', { id: 'selectionLayer' });
 
     SEATMAP_DATA.items.forEach(item => {
       if (item.type === 'standing') {
-        standingLayer.appendChild(createStandingCell(item));
+        seatLayer.appendChild(createStandingCell(item));
       } else {
-        hitLayer.appendChild(createSeatHit(item));
+        seatLayer.appendChild(createSeatNode(item));
       }
     });
 
-    els.overlay.appendChild(standingLayer);
-    els.overlay.appendChild(hitLayer);
-    els.overlay.appendChild(selectionLayer);
+    svg.append(seatLayer, selectionLayer);
     renderSelection();
   }
 
@@ -250,35 +232,150 @@
     return defs;
   }
 
-  function createSeatHit(item) {
+  function drawBaseMap() {
+    const root = svgEl('g', { id: 'baseMap' });
+
+    root.appendChild(svgEl('rect', {
+      x: 8, y: 8, width: 624, height: 744, rx: 20,
+      fill: '#fffdfd', stroke: '#111', 'stroke-width': 5
+    }));
+
+    // Decorative monitor and door
+    root.appendChild(svgEl('rect', { x: 560, y: 18, width: 16, height: 16, fill: '#26c6e8' }));
+    root.appendChild(mapText(582, 30, t('mapMonitor'), 'base-label', { 'font-size': 10, 'text-anchor': 'start' }));
+    root.appendChild(svgEl('path', { class: 'stage-door', d: 'M278 44 V8 M278 8 H320 M362 44 V8 M362 8 H320 M320 8 V44 M320 44 Q320 9 362 44 M320 44 Q320 9 278 44' }));
+    root.appendChild(mapText(320, 26, t('mapDoor'), 'base-caption', { 'text-anchor': 'middle' }));
+
+    // Stage block
+    root.appendChild(svgEl('rect', { x: 118, y: 84, width: 404, height: 88, fill: '#f8eef2', stroke: '#111', 'stroke-width': 2.2 }));
+    root.appendChild(svgEl('line', { x1: 118, y1: 116, x2: 522, y2: 116, stroke: '#111', 'stroke-width': 1.8 }));
+    root.appendChild(svgEl('line', { x1: 219, y1: 84, x2: 219, y2: 172, stroke: '#111', 'stroke-width': 1.4 }));
+    root.appendChild(svgEl('line', { x1: 421, y1: 84, x2: 421, y2: 172, stroke: '#111', 'stroke-width': 1.4 }));
+    root.appendChild(svgEl('line', { x1: 320, y1: 154, x2: 320, y2: 171, stroke: '#111', 'stroke-width': 2 }));
+    root.appendChild(mapText(320, 110, t('mapSeri'), 'base-caption', { 'text-anchor': 'middle' }));
+    root.appendChild(mapText(320, 144, t('mapStage'), 'base-label', { 'font-size': 20, 'text-anchor': 'middle' }));
+
+    // Wings
+    root.appendChild(svgEl('rect', { x: 20, y: 52, width: 58, height: 146, fill: '#000' }));
+    root.appendChild(svgEl('rect', { x: 562, y: 52, width: 58, height: 146, fill: '#000' }));
+    root.appendChild(svgEl('rect', { x: 30, y: 198, width: 45, height: 4, fill: '#26c6e8' }));
+    root.appendChild(svgEl('rect', { x: 565, y: 198, width: 38, height: 4, fill: '#26c6e8' }));
+    root.appendChild(mapText(50, 126, t('mapShimoteWing'), 'map-section-vertical', { 'text-anchor': 'middle' }));
+    root.appendChild(mapText(592, 126, t('mapKamiteWing'), 'map-section-vertical', { 'text-anchor': 'middle' }));
+
+    // Main arena shell
+    root.appendChild(svgEl('path', {
+      d: 'M33 232 L607 232 L607 308 L626 308 Q632 308 632 314 L632 338 Q632 344 626 344 L607 344 L607 574 L531 574 L531 646 L425 646 L425 744 L74 744 L74 646 L33 646 L33 232 Z',
+      fill: 'none', stroke: '#111', 'stroke-width': 3.2, 'stroke-linejoin': 'round'
+    }));
+
+    // Hanamichi labels
+    root.appendChild(mapText(44, 320, t('mapShimoteHanamichi'), 'map-section-vertical', { 'text-anchor': 'middle', fill: '#ff007f', 'font-size': 13 }));
+    root.appendChild(mapText(598, 320, t('mapKamiteHanamichi'), 'map-section-vertical', { 'text-anchor': 'middle', fill: '#ff007f', 'font-size': 13 }));
+
+    // Curved aisle hints
+    root.appendChild(svgEl('path', { d: 'M74 232 C74 255 56 258 56 258 L56 378', fill: 'none', stroke: '#111', 'stroke-width': 2.2 }));
+    root.appendChild(svgEl('path', { d: 'M566 232 C566 255 584 258 584 258 L584 378', fill: 'none', stroke: '#111', 'stroke-width': 2.2 }));
+
+    // Main seat zone blocks
+    root.appendChild(svgEl('rect', { x: 61, y: 272, width: 130, height: 226, fill: '#faf6f8', stroke: '#111', 'stroke-width': 1.4, rx: 6 }));
+    root.appendChild(svgEl('rect', { x: 210, y: 269, width: 230, height: 255, fill: '#faf6f8', stroke: '#111', 'stroke-width': 1.4, rx: 6 }));
+    root.appendChild(svgEl('rect', { x: 449, y: 272, width: 106, height: 269, fill: '#faf6f8', stroke: '#111', 'stroke-width': 1.4, rx: 6 }));
+
+    // Row labels
+    [1,2,3,4,5,6,7].forEach((num, index) => {
+      const y = 290 + index * 36;
+      root.appendChild(mapText(202, y, rowTag(num), 'main-row-text', { 'text-anchor': 'middle' }));
+      root.appendChild(mapText(447, y, rowTag(num), 'main-row-text', { 'text-anchor': 'middle' }));
+    });
+
+    // Pillars
+    root.appendChild(drawPillar(221, 282));
+    root.appendChild(drawPillar(425, 282));
+
+    // Standing area chips and boxes
+    root.appendChild(drawAreaChip(57, 499, 135, 53, t('mapStandingA')));
+    root.appendChild(drawAreaChip(217, 488, 208, 61, t('mapStandingB')));
+    root.appendChild(drawAreaChip(452, 498, 104, 48, t('mapStandingC')));
+    root.appendChild(drawAreaChip(57, 579, 106, 35, t('mapStandingD')));
+    root.appendChild(drawAreaChip(447, 540, 112, 34, t('mapStandingE')));
+
+    // Bottom central opening and exits
+    root.appendChild(svgEl('path', { d: 'M190 646 L233 646 L233 569 L425 569', fill: 'none', stroke: '#111', 'stroke-width': 3.2 }));
+    root.appendChild(svgEl('path', { d: 'M74 646 L105 646 L105 663 L74 663', fill: 'none', stroke: '#111', 'stroke-width': 3.2 }));
+    root.appendChild(svgEl('path', { d: 'M74 701 Q58 701 41 684 L41 744 L89 744 L89 710 Q79 710 74 701 Z', fill: 'none', stroke: '#111', 'stroke-width': 2.4 }));
+    root.appendChild(svgEl('path', { d: 'M425 646 L425 682 Q425 695 439 695 L531 695', fill: 'none', stroke: '#111', 'stroke-width': 2.4 }));
+    root.appendChild(mapText(54, 709, t('mapEntrance'), 'base-label', { 'font-size': 12 }));
+    root.appendChild(mapText(539, 314, t('mapEmergency'), 'base-label', { 'font-size': 11 }));
+    root.appendChild(mapText(440, 690, t('mapEmergency'), 'base-label', { 'font-size': 11 }));
+
+    return root;
+  }
+
+  function drawAreaChip(x, y, w, h, label) {
+    const g = svgEl('g', { class: 'area-chip' });
+    g.appendChild(svgEl('rect', { x, y, width: w, height: h, rx: 6 }));
+    g.appendChild(svgEl('text', { x: x + w / 2, y: y + h - 10, 'text-anchor': 'middle' }));
+    g.lastChild.textContent = label;
+    return g;
+  }
+
+  function drawPillar(x, y) {
+    const g = svgEl('g');
+    g.appendChild(svgEl('rect', { class: 'pillar-box', x, y, width: 30, height: 32, rx: 2 }));
+    g.appendChild(svgEl('text', { class: 'pillar-text', x: x + 15, y: y + 16 }));
+    g.lastChild.textContent = t('mapPillar');
+    return g;
+  }
+
+  function mapText(x, y, content, className, attrs = {}) {
+    const text = svgEl('text', {
+      x,
+      y,
+      class: className,
+      ...attrs
+    });
+    text.textContent = content;
+    return text;
+  }
+
+  function rowTag(num) {
+    if (state.lang === 'en') return `R${num}`;
+    return `${num}列`;
+  }
+
+  function createSeatNode(item) {
+    const group = svgEl('g', {
+      class: `seat-node ${item.kind === 'dark' ? 'seat-dark' : 'seat-main'}`,
+      tabindex: 0,
+      role: 'button',
+      'aria-label': getLocalizedSeatLabel(item),
+      'data-seat-id': item.id
+    });
+
     const rect = svgEl('rect', {
-      class: 'seat-hit',
       x: item.x,
       y: item.y,
       width: item.w,
       height: item.h,
-      rx: 2,
-      tabindex: 0,
-      role: 'button',
-      'aria-label': item.label,
-      'data-seat-id': item.id
+      rx: 2.2
     });
-    rect.addEventListener('click', () => selectItem(item.id));
-    rect.addEventListener('keydown', event => {
-      if (event.key === 'Enter' || event.key === ' ') {
-        event.preventDefault();
-        selectItem(item.id);
-      }
+    const text = svgEl('text', {
+      x: item.x + item.w / 2,
+      y: item.y + item.h / 2 + 0.4
     });
-    return rect;
+    text.textContent = item.number;
+    group.append(rect, text);
+    bindSeatEvents(group, item.id);
+    return group;
   }
 
   function createStandingCell(item) {
     const group = svgEl('g', {
-      class: 'standing-cell',
+      class: 'standing-cell seat-node',
       tabindex: 0,
       role: 'button',
-      'aria-label': item.label,
+      'aria-label': getLocalizedSeatLabel(item),
       'data-seat-id': item.id
     });
     const rect = svgEl('rect', {
@@ -290,18 +387,22 @@
     });
     const text = svgEl('text', {
       x: item.x + item.w / 2,
-      y: item.y + item.h / 2
+      y: item.y + item.h / 2 + 0.2
     });
     text.textContent = `${item.row}-${item.number}`;
     group.append(rect, text);
-    group.addEventListener('click', () => selectItem(item.id));
-    group.addEventListener('keydown', event => {
+    bindSeatEvents(group, item.id);
+    return group;
+  }
+
+  function bindSeatEvents(node, id) {
+    node.addEventListener('click', () => selectItem(id));
+    node.addEventListener('keydown', event => {
       if (event.key === 'Enter' || event.key === ' ') {
         event.preventDefault();
-        selectItem(item.id);
+        selectItem(id);
       }
     });
-    return group;
   }
 
   function selectItem(id) {
@@ -316,8 +417,9 @@
     if (!layer) return;
     layer.innerHTML = '';
 
-    document.querySelectorAll('[data-seat-id]').forEach(node => {
-      node.classList.toggle('is-hovered', node.dataset.seatId === state.selectedId);
+    els.overlay.querySelectorAll('[data-seat-id]').forEach(node => {
+      node.classList.toggle('is-selected', node.dataset.seatId === state.selectedId);
+      node.setAttribute('aria-label', getLocalizedSeatLabel(itemById.get(node.dataset.seatId)));
     });
 
     if (!state.selectedId) return;
@@ -326,11 +428,11 @@
 
     layer.appendChild(svgEl('rect', {
       class: 'selection-rect',
-      x: item.x - 2,
-      y: item.y - 2,
-      width: item.w + 4,
-      height: item.h + 4,
-      rx: 4
+      x: item.x - 3,
+      y: item.y - 3,
+      width: item.w + 6,
+      height: item.h + 6,
+      rx: 5
     }));
     layer.appendChild(createArrowCallout(item));
   }
@@ -341,22 +443,23 @@
     const above = cy > 92;
     const group = svgEl('g', { class: 'arrow-callout' });
 
-    const labelW = 78;
+    const labelW = state.lang === 'en' ? 94 : 82;
     const labelH = 25;
-    const labelY = above ? cy - 62 : cy + 38;
+    const labelX = clamp(cx - labelW / 2, 10, SEATMAP_DATA.width - labelW - 10);
+    const labelY = above ? cy - 64 : cy + 40;
     const arrowTipY = above ? item.y - 5 : item.y + item.h + 5;
     const arrowBaseY = above ? labelY + labelH : labelY;
 
     const labelRect = svgEl('rect', {
       class: 'arrow-label-bg',
-      x: clamp(cx - labelW / 2, 10, 640 - labelW - 10),
+      x: labelX,
       y: labelY,
       width: labelW,
       height: labelH,
       rx: 13
     });
     const labelText = svgEl('text', {
-      x: clamp(cx, labelW / 2 + 10, 640 - labelW / 2 - 10),
+      x: labelX + labelW / 2,
       y: labelY + labelH / 2
     });
     labelText.textContent = t('arrowText');
@@ -393,19 +496,36 @@
   }
 
   function getLocalizedSeatLabel(item) {
+    if (!item) return t('noSelection');
+
     if (item.type === 'standing') {
-      if (state.lang === 'zh') return `立見區域${item.area} 第${item.row}行 ${item.number}號`;
+      if (state.lang === 'zh') return `立見區域 ${item.area} 第 ${item.row} 行 ${item.number} 號`;
       if (state.lang === 'en') return `Standing Area ${item.area} / Row ${item.row} / Slot ${item.number}`;
-      return `立見エリア${item.area} ${item.row}行 ${item.number}番`;
+      return `立見エリア ${item.area} ${item.row}行 ${item.number}番`;
     }
 
     if (item.zone === 'main') {
-      if (state.lang === 'zh') return `${item.row}列 ${item.number}號`;
+      if (state.lang === 'zh') return `${item.row} 列 ${item.number} 號`;
       if (state.lang === 'en') return `Row ${item.row} / Seat ${item.number}`;
       return `${item.row}列 ${item.number}番`;
     }
 
-    return item.label;
+    if (item.zone === 'rear-stage' || item.zone === 'rear-main') {
+      if (state.lang === 'zh') return `後方位置 ${item.number}`;
+      if (state.lang === 'en') return `Rear Position ${item.number}`;
+      return `後方 ${item.number}`;
+    }
+
+    if (item.zone === 'left-side' || item.zone === 'right-side') {
+      const side = item.zone === 'left-side'
+        ? (state.lang === 'en' ? 'Left' : state.lang === 'zh' ? '左側' : '下手側')
+        : (state.lang === 'en' ? 'Right' : state.lang === 'zh' ? '右側' : '上手側');
+      if (state.lang === 'en') return `${side} Side ${item.number}`;
+      if (state.lang === 'zh') return `${side} ${item.number} 號`;
+      return `${side} ${item.number}番`;
+    }
+
+    return item.label || item.id;
   }
 
   function getCurrentPerformance() {
@@ -469,19 +589,25 @@
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, logicalW, logicalH);
 
-    const image = await loadImage('assets/seatmap-reference.png');
+    const svgUrl = await createSvgDataUrl();
+    const image = await loadImage(svgUrl);
     ctx.drawImage(image, 0, 0, SEATMAP_DATA.width, SEATMAP_DATA.height);
-
-    drawStandingGrid(ctx);
+    URL.revokeObjectURL(svgUrl);
 
     const item = itemById.get(state.selectedId);
-    if (item) {
-      drawSelectedMark(ctx, item);
-      drawCanvasArrow(ctx, item);
-    }
-
     drawFooter(ctx, item);
     return canvas.toDataURL('image/png');
+  }
+
+  async function createSvgDataUrl() {
+    const clone = els.overlay.cloneNode(true);
+    clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+    clone.setAttribute('width', SEATMAP_DATA.width);
+    clone.setAttribute('height', SEATMAP_DATA.height);
+    const serializer = new XMLSerializer();
+    const source = serializer.serializeToString(clone);
+    const blob = new Blob([source], { type: 'image/svg+xml;charset=utf-8' });
+    return URL.createObjectURL(blob);
   }
 
   function loadImage(src) {
@@ -491,92 +617,6 @@
       img.onerror = reject;
       img.src = src;
     });
-  }
-
-  function drawStandingGrid(ctx) {
-    ctx.save();
-    SEATMAP_DATA.items.filter(item => item.type === 'standing').forEach(item => {
-      ctx.fillStyle = 'rgba(255, 245, 250, 0.70)';
-      ctx.strokeStyle = 'rgba(255, 0, 127, 0.68)';
-      ctx.lineWidth = 0.8;
-      roundRect(ctx, item.x, item.y, item.w, item.h, 2.2);
-      ctx.fill();
-      ctx.stroke();
-      ctx.fillStyle = '#d6006b';
-      ctx.font = '900 5.6px "Noto Sans JP", sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(`${item.row}-${item.number}`, item.x + item.w / 2, item.y + item.h / 2 + 0.2);
-    });
-    ctx.restore();
-  }
-
-  function drawSelectedMark(ctx, item) {
-    ctx.save();
-    ctx.shadowColor = 'rgba(255, 0, 127, 0.75)';
-    ctx.shadowBlur = 12;
-    ctx.fillStyle = 'rgba(255, 0, 127, 0.35)';
-    ctx.strokeStyle = '#ff007f';
-    ctx.lineWidth = 3;
-    roundRect(ctx, item.x - 3, item.y - 3, item.w + 6, item.h + 6, 5);
-    ctx.fill();
-    ctx.stroke();
-    ctx.restore();
-  }
-
-  function drawCanvasArrow(ctx, item) {
-    const cx = item.x + item.w / 2;
-    const cy = item.y + item.h / 2;
-    const above = cy > 92;
-    const labelW = 78;
-    const labelH = 25;
-    const labelX = clamp(cx - labelW / 2, 10, 640 - labelW - 10);
-    const labelY = above ? cy - 62 : cy + 38;
-    const arrowTipY = above ? item.y - 5 : item.y + item.h + 5;
-    const arrowBaseY = above ? labelY + labelH : labelY;
-
-    ctx.save();
-    ctx.shadowColor = 'rgba(255, 0, 127, 0.75)';
-    ctx.shadowBlur = 9;
-    ctx.fillStyle = 'rgba(255,255,255,0.96)';
-    ctx.strokeStyle = '#ff007f';
-    ctx.lineWidth = 1.6;
-    roundRect(ctx, labelX, labelY, labelW, labelH, 13);
-    ctx.fill();
-    ctx.stroke();
-
-    ctx.fillStyle = '#ff007f';
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    if (above) {
-      ctx.moveTo(cx - 9, arrowBaseY - 1);
-      ctx.lineTo(cx + 9, arrowBaseY - 1);
-      ctx.lineTo(cx + 9, arrowTipY - 18);
-      ctx.lineTo(cx + 21, arrowTipY - 18);
-      ctx.lineTo(cx, arrowTipY);
-      ctx.lineTo(cx - 21, arrowTipY - 18);
-      ctx.lineTo(cx - 9, arrowTipY - 18);
-    } else {
-      ctx.moveTo(cx - 9, arrowBaseY + 1);
-      ctx.lineTo(cx + 9, arrowBaseY + 1);
-      ctx.lineTo(cx + 9, arrowTipY + 18);
-      ctx.lineTo(cx + 21, arrowTipY + 18);
-      ctx.lineTo(cx, arrowTipY);
-      ctx.lineTo(cx - 21, arrowTipY + 18);
-      ctx.lineTo(cx - 9, arrowTipY + 18);
-    }
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
-
-    ctx.shadowBlur = 0;
-    ctx.fillStyle = '#ff007f';
-    ctx.font = '900 12px "Noto Sans JP", sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(t('arrowText'), labelX + labelW / 2, labelY + labelH / 2);
-    ctx.restore();
   }
 
   function drawFooter(ctx, item) {
@@ -614,17 +654,6 @@
       });
     }
     ctx.restore();
-  }
-
-  function roundRect(ctx, x, y, w, h, r) {
-    const radius = Math.min(r, w / 2, h / 2);
-    ctx.beginPath();
-    ctx.moveTo(x + radius, y);
-    ctx.arcTo(x + w, y, x + w, y + h, radius);
-    ctx.arcTo(x + w, y + h, x, y + h, radius);
-    ctx.arcTo(x, y + h, x, y, radius);
-    ctx.arcTo(x, y, x + w, y, radius);
-    ctx.closePath();
   }
 
   function svgEl(name, attrs = {}) {
