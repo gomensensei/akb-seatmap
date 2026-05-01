@@ -383,11 +383,19 @@ button:disabled {
   position: fixed;
   inset: 0;
   z-index: 10000;
-  display: grid;
+  display: none;
   place-items: center;
   padding: 24px;
   background: rgba(20, 28, 38, 0.44);
   backdrop-filter: blur(10px);
+}
+
+.modal-backdrop:not([hidden]) {
+  display: grid;
+}
+
+.modal-backdrop[hidden] {
+  display: none !important;
 }
 
 .export-modal {

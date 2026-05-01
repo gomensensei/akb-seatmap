@@ -34,7 +34,30 @@
 
   const itemById = new Map(SEATMAP_DATA.items.map(item => [item.id, item]));
 
+  bindModalFailsafe();
   document.addEventListener('DOMContentLoaded', init);
+
+  function bindModalFailsafe() {
+    if (!els.modal) return;
+
+    // Hard reset: the export preview must never be visible on first page load.
+    els.modal.hidden = true;
+
+    if (els.modalCloseBtn) {
+      els.modalCloseBtn.addEventListener('click', event => {
+        event.preventDefault();
+        closeModal();
+      });
+    }
+
+    els.modal.addEventListener('click', event => {
+      if (event.target === els.modal) closeModal();
+    });
+
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape' && !els.modal.hidden) closeModal();
+    });
+  }
 
   async function init() {
     state.lang = detectLanguage();
