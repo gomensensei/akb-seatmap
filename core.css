@@ -1,0 +1,127 @@
+/* =========================================
+   1. Gomensensei Core UI - Variables & Base (45度動態漸變)
+   ========================================= */
+:root {
+    --bg-grad-1: #e0eafc; --bg-grad-2: #cfdef3; --bg-grad-3: #FFB6C1; --bg-grad-4: #f8bbd0;
+    --primary: #FF4081; --primary-hover: #E91E63;
+    --text-main: #2C3E50; --text-sec: #7F8C8D;
+}
+
+body {
+    margin: 0; padding: 0; font-family: 'Noto Sans JP', sans-serif;
+    background: linear-gradient(-45deg, var(--bg-grad-1), var(--bg-grad-2), var(--bg-grad-3), var(--bg-grad-4));
+    background-size: 400% 400%; animation: gradientBG 20s ease infinite;
+    min-height: 100dvh; -webkit-tap-highlight-color: transparent;
+    color: var(--text-main); overflow-x: hidden;
+}
+@keyframes gradientBG { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+
+/* =========================================
+   2. 佈局神技：長期完美置中 & 極致防溢出 (Container Queries)
+   ========================================= */
+/* 萬用絕對置中 */
+.flex-center { display: flex; justify-content: center; align-items: center; }
+
+/* 防溢出卡片容器宣告 */
+.cq-card {
+    container-type: inline-size;
+    width: 100%; height: 100%;
+    display: flex; flex-direction: column;
+}
+/* 卡片內部文字使用 cqw (Container Query Width) 確保永不爆版 */
+.cq-title { font-size: 11cqw; font-weight: 900; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cq-padding { padding: 4cqw; }
+
+/* =========================================
+   3. 動畫特技：圖像懸浮反光與呼吸跳動
+   ========================================= */
+/* 呼吸跳動 (適合頭像或 Icon) */
+.float-anim { animation: float 6s ease-in-out infinite; will-change: transform; }
+@keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-6px); } }
+
+/* 圖像/卡片懸浮反光與放大 */
+.hover-glow {
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s;
+}
+.hover-glow:hover {
+    transform: translateY(-5px) scale(1.02);
+    box-shadow: 0 15px 35px rgba(255, 64, 129, 0.2);
+    z-index: 2;
+}
+
+/* =========================================
+   4. Apple-Level Spatial Glassmorphism 3D (結合 Hover)
+   ========================================= */
+.apple-glass-3d {
+    position: relative; background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-radius: 24px;
+    box-shadow: inset 1.5px 1.5px 2px rgba(255, 255, 255, 0.4), inset -1px -1px 3px rgba(0, 0, 0, 0.1), 0 8px 20px rgba(0, 0, 0, 0.1);
+    transform-style: preserve-3d;
+    transform: perspective(1000px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+    transition: transform 0.1s ease-out; overflow: hidden; will-change: transform;
+}
+.apple-glass-3d::before {
+    content: ''; position: absolute; inset: 0; border-radius: inherit; padding: 1px;
+    background: linear-gradient(135deg, rgba(255,255,255,0.6) 0%, rgba(255,200,255,0.2) 25%, transparent 50%, rgba(200,255,255,0.2) 75%, rgba(255,255,255,0.2) 100%);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor; mask-composite: exclude; pointer-events: none;
+}
+.apple-glass-3d::after {
+    content: ''; position: absolute; inset: 0; pointer-events: none; mix-blend-mode: overlay;
+    background: radial-gradient(circle 250px at var(--glare-x, 50%) var(--glare-y, 50%), rgba(255, 255, 255, 0.3), transparent 80%);
+    opacity: var(--glare-op, 0); transition: opacity 0.3s ease;
+}
+
+/* =========================================
+   5. UX 細節：水波紋 & 滑出收回 Bar 隱藏
+   ========================================= */
+.global-ripple {
+    position: absolute; border-radius: 50%; transform: scale(0); z-index: 9999;
+    background-color: rgba(255, 255, 255, 0.4); pointer-events: none;
+    animation: ripple-anim 0.6s ease-out forwards; will-change: transform, opacity;
+}
+@keyframes ripple-anim { to { transform: scale(4); opacity: 0; } }
+
+/* 滑出 Bar 漸隱專用 Class */
+.drawer-hint { transition: opacity 0.3s ease, transform 0.3s ease; opacity: 1; transform: translateY(0); }
+.drawer-hint.fade-out { opacity: 0; transform: translateY(20px); pointer-events: none; }
+
+/* =========================================
+   6. 網頁原生化防護罩 (Native App Shield)
+   ========================================= */
+/* 封鎖全網頁的反白與 iOS 長按選單，模擬原生 App 手感 */
+body.native-feel {
+    -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none;
+    -webkit-touch-callout: none;
+}
+/* 封鎖圖片拖曳鬼影 */
+.native-feel img {
+    -webkit-user-drag: none; -khtml-user-drag: none; -moz-user-drag: none; -o-user-drag: none;
+}
+/* 系統級豁免：確保輸入框可打字，指定畫布/圖片可長按儲存 */
+.native-feel input, .native-feel textarea { user-select: auto; }
+.allow-save { -webkit-touch-callout: default !important; pointer-events: auto; }
+
+/* =========================================
+   7. 觸控防誤觸 (Touch-Action Shield)
+   ========================================= */
+/* 手機端專屬：防止上下滑動頁面時誤觸水平拉桿 */
+input[type="range"] {
+    touch-action: pan-y;
+}
+
+/* =========================================
+   8. 懸浮狀態殘留修復 (Sticky Hover Fix)
+   ========================================= */
+/* 只在支援真實游標的設備上啟用 Hover，避免手機端點擊後殘影 */
+@media (hover: hover) and (pointer: fine) {
+    .hover-glow:hover { /* 動畫屬性 */ }
+}
+
+/* =========================================
+   9. 安全區域適配 (Safe Area Insets)
+   ========================================= */
+body {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+}
