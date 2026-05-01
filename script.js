@@ -189,13 +189,20 @@
 
   function drawBaseMap() {
     const root = svgEl('g', { id: 'baseMap' });
-    root.appendChild(svgEl('rect', { x: 8, y: 8, width: 624, height: 744, rx: 20, fill: '#fffdfd', stroke: '#111', 'stroke-width': 5 }));
+    // Outer venue outline refined to better match the original map silhouette.
+    root.appendChild(svgEl('path', {
+      d: 'M40 24 H600 Q628 24 628 52 V700 Q628 736 600 736 H96 V644 H28 V52 Q28 24 40 24 Z',
+      fill: '#fffdfd', stroke: '#111', 'stroke-width': 5, 'stroke-linejoin': 'round', 'stroke-linecap': 'round'
+    }));
+
+    // Bottom-left entrance enclosure on the outer wall.
+    root.appendChild(svgEl('path', { d: 'M96 736 V640 H28', fill: 'none', stroke: '#111', 'stroke-width': 5, 'stroke-linecap': 'round' }));
 
     // Top door opening downward
-    root.appendChild(svgEl('path', { class: 'stage-door', d: 'M285 50 V12 H320 V46 M355 50 V12 H320 V46 M285 12 H355' }));
-    root.appendChild(svgEl('path', { class: 'stage-door', d: 'M320 46 Q304 32 285 50' }));
-    root.appendChild(svgEl('path', { class: 'stage-door', d: 'M320 46 Q336 32 355 50' }));
-    root.appendChild(mapText(320, 30, t('mapDoor'), 'base-caption', { 'text-anchor': 'middle' }));
+    root.appendChild(svgEl('path', { class: 'stage-door', d: 'M287 47 V8 H320 V41 M353 47 V8 H320 V41 M287 8 H353' }));
+    root.appendChild(svgEl('path', { class: 'stage-door', d: 'M320 41 Q302 24 287 47' }));
+    root.appendChild(svgEl('path', { class: 'stage-door', d: 'M320 41 Q338 24 353 47' }));
+    root.appendChild(mapText(320, 24, t('mapDoor'), 'base-caption', { 'text-anchor': 'middle' }));
 
     // Stage block
     root.appendChild(svgEl('rect', { x: 118, y: 84, width: 404, height: 88, fill: '#f8eef2', stroke: '#111', 'stroke-width': 2.2 }));
@@ -214,9 +221,9 @@
     root.appendChild(mapText(50, 126, t('mapShimoteWing'), 'map-section-title', { 'text-anchor': 'middle', transform: 'rotate(90 50 126)' }));
     root.appendChild(mapText(591, 126, t('mapKamiteWing'), 'map-section-title', { 'text-anchor': 'middle', transform: 'rotate(90 591 126)' }));
 
-    root.appendChild(svgEl('path', { d: 'M33 232 L607 232 L607 307 L625 307 Q632 307 632 313 L632 342 Q632 348 625 348 L607 348 L607 574 L531 574 L531 646 L425 646 L425 744 L74 744 L74 646 L33 646 L33 232 Z', fill: 'none', stroke: '#111', 'stroke-width': 3.2, 'stroke-linejoin': 'round' }));
-    root.appendChild(svgEl('path', { d: 'M74 232 C74 255 56 258 56 258 L56 378', fill: 'none', stroke: '#111', 'stroke-width': 2.2 }));
-    root.appendChild(svgEl('path', { d: 'M566 232 C566 255 584 258 584 258 L584 378', fill: 'none', stroke: '#111', 'stroke-width': 2.2 }));
+    root.appendChild(svgEl('path', { d: 'M58 226 H582 Q584 244 572 260 V304 H602 Q622 304 622 322 V338 Q622 352 602 352 H572 V552 H523 V628 H435 V695 H96 V640 H58 V226 Z', fill: 'none', stroke: '#111', 'stroke-width': 3.2, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }));
+    root.appendChild(svgEl('path', { d: 'M58 226 C58 250 44 254 44 254 L44 382', fill: 'none', stroke: '#111', 'stroke-width': 2.2 }));
+    root.appendChild(svgEl('path', { d: 'M582 226 C582 250 596 254 596 254 L596 382', fill: 'none', stroke: '#111', 'stroke-width': 2.2 }));
 
     root.appendChild(mapText(30, 320, t('mapShimoteHanamichi'), 'map-section-vertical', { 'text-anchor': 'middle' }));
     root.appendChild(mapText(610, 320, t('mapKamiteHanamichi'), 'map-section-vertical', { 'text-anchor': 'middle' }));
@@ -232,24 +239,24 @@
       root.appendChild(mapText(447, y, rowTag(num), 'main-row-text', { 'text-anchor': 'middle' }));
     });
 
-    root.appendChild(drawPillar(221, 282));
-    root.appendChild(drawPillar(425, 282));
+    root.appendChild(drawPillar(214, 282));
+    root.appendChild(drawPillar(421, 282));
 
-    root.appendChild(drawAreaChip(57, 499, 135, 53, t('mapStandingA')));
-    root.appendChild(drawAreaChip(217, 488, 208, 61, t('mapStandingB')));
-    root.appendChild(drawAreaChip(452, 498, 104, 48, t('mapStandingC')));
-    root.appendChild(drawAreaChip(57, 579, 106, 35, t('mapStandingD')));
-    root.appendChild(drawAreaChip(447, 540, 112, 34, t('mapStandingE')));
+    root.appendChild(drawAreaChip(57, 517, 135, 53, t('mapStandingA')));
+    root.appendChild(drawAreaChip(216, 507, 210, 62, t('mapStandingB')));
+    root.appendChild(drawAreaChip(452, 516, 102, 40, t('mapStandingC')));
+    root.appendChild(drawAreaLabel(60, 585, t('mapStandingD')));
+    root.appendChild(drawAreaChip(452, 560, 104, 28, t('mapStandingE')));
 
-    // Bottom paths
-    root.appendChild(svgEl('path', { d: 'M190 646 L233 646 L233 569 L425 569', fill: 'none', stroke: '#111', 'stroke-width': 3.2 }));
-    root.appendChild(svgEl('path', { d: 'M74 646 L105 646 L105 663 L74 663', fill: 'none', stroke: '#111', 'stroke-width': 3.2 }));
-    root.appendChild(svgEl('path', { d: 'M74 675 L74 744 L126 744 L126 706', fill: 'none', stroke: '#111', 'stroke-width': 2.8 }));
-    root.appendChild(svgEl('path', { d: 'M74 675 Q56 675 40 658 L40 744', fill: 'none', stroke: '#111', 'stroke-width': 2.4 }));
-    root.appendChild(svgEl('path', { d: 'M425 646 L425 682 Q425 694 437 694 L531 694 L531 620', fill: 'none', stroke: '#111', 'stroke-width': 2.8 }));
-    root.appendChild(svgEl('path', { d: 'M531 694 L531 628', fill: 'none', stroke: '#111', 'stroke-width': 2.8 }));
-    root.appendChild(mapText(78, 705, t('mapEntrance'), 'base-label', { 'font-size': 12 }));
-    root.appendChild(mapText(538, 309, t('mapEmergency'), 'base-label', { 'font-size': 11 }));
+    // Bottom paths refined to match the original silhouette more closely.
+    root.appendChild(svgEl('path', { d: 'M208 632 H245 V566 H432', fill: 'none', stroke: '#111', 'stroke-width': 3.2 }));
+    root.appendChild(svgEl('path', { d: 'M95 642 H127 V657 H95', fill: 'none', stroke: '#111', 'stroke-width': 3.2 }));
+    root.appendChild(svgEl('path', { d: 'M95 675 V735 H147 V696', fill: 'none', stroke: '#111', 'stroke-width': 2.8 }));
+    root.appendChild(svgEl('path', { d: 'M95 675 Q73 675 54 655 V735', fill: 'none', stroke: '#111', 'stroke-width': 2.4 }));
+    root.appendChild(svgEl('path', { d: 'M431 633 V676 Q431 685 441 685 H532 V612', fill: 'none', stroke: '#111', 'stroke-width': 2.8 }));
+    root.appendChild(svgEl('path', { d: 'M431 685 Q431 708 447 708 H532', fill: 'none', stroke: '#111', 'stroke-width': 2.8 }));
+    root.appendChild(mapText(74, 695, t('mapEntrance'), 'base-label', { 'font-size': 12 }));
+    root.appendChild(mapText(533, 309, t('mapEmergency'), 'base-label', { 'font-size': 11 }));
 
     return root;
   }
@@ -271,6 +278,14 @@
     const g = svgEl('g', { class: 'area-chip' });
     g.appendChild(svgEl('rect', { x, y, width: w, height: h, rx: 6 }));
     const text = svgEl('text', { x: x + w / 2, y: y + h - 10, 'text-anchor': 'middle' }); text.textContent = label; g.appendChild(text); return g;
+  }
+
+  function drawAreaLabel(x, y, label) {
+    const g = svgEl('g');
+    const text = svgEl('text', { x, y, class: 'base-label' });
+    text.textContent = label;
+    g.appendChild(text);
+    return g;
   }
 
   function drawPillar(x, y) {
@@ -377,11 +392,11 @@
 
   function drawBaseCanvas(ctx) {
     ctx.save();
-    ctx.fillStyle = '#fffdfd'; ctx.strokeStyle = '#111'; ctx.lineWidth = 5; roundRect(ctx, 8, 8, 624, 744, 20); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#fffdfd'; ctx.strokeStyle = '#111'; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(40,24); ctx.lineTo(600,24); ctx.quadraticCurveTo(628,24,628,52); ctx.lineTo(628,700); ctx.quadraticCurveTo(628,736,600,736); ctx.lineTo(96,736); ctx.lineTo(96,644); ctx.lineTo(28,644); ctx.lineTo(28,52); ctx.quadraticCurveTo(28,24,40,24); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.beginPath(); ctx.moveTo(96,736); ctx.lineTo(96,640); ctx.lineTo(28,640); ctx.stroke();
     // top door
-    ctx.lineWidth = 2.2; ctx.beginPath(); ctx.moveTo(285, 50); ctx.lineTo(285, 12); ctx.lineTo(320, 12); ctx.lineTo(320, 46); ctx.moveTo(355, 50); ctx.lineTo(355, 12); ctx.lineTo(320, 12); ctx.lineTo(320, 46); ctx.moveTo(285, 12); ctx.lineTo(355, 12); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(320, 46); ctx.quadraticCurveTo(304, 32, 285, 50); ctx.moveTo(320, 46); ctx.quadraticCurveTo(336, 32, 355, 50); ctx.stroke();
-    drawText(ctx, t('mapDoor'), 320, 30, '700 9px "Noto Sans JP", sans-serif', '#ff4fa3', 'center');
+    ctx.lineWidth = 2.2; ctx.beginPath(); ctx.moveTo(287, 47); ctx.lineTo(287, 8); ctx.lineTo(320, 8); ctx.lineTo(320, 41); ctx.moveTo(353, 47); ctx.lineTo(353, 8); ctx.lineTo(320, 8); ctx.lineTo(320, 41); ctx.moveTo(287, 8); ctx.lineTo(353, 8); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(320, 41); ctx.quadraticCurveTo(302, 24, 287, 47); ctx.moveTo(320, 41); ctx.quadraticCurveTo(338, 24, 353, 47); ctx.stroke();
+    drawText(ctx, t('mapDoor'), 320, 24, '700 9px "Noto Sans JP", sans-serif', '#ff4fa3', 'center');
     // stage
     ctx.fillStyle = '#f8eef2'; ctx.strokeStyle = '#111'; ctx.lineWidth = 2.2; ctx.strokeRect(118, 84, 404, 88); ctx.fillRect(118, 84, 404, 88); ctx.strokeRect(118,84,404,88);
     ctx.lineWidth = 1.8; line(ctx,118,116,522,116); ctx.lineWidth = 1.4; line(ctx,219,84,219,172); line(ctx,421,84,421,172); ctx.lineWidth = 2; line(ctx,320,154,320,171);
@@ -392,19 +407,19 @@
     drawRotatedText(ctx, t('mapShimoteWing'), 50, 126, Math.PI/2, '900 17px "Noto Sans JP", sans-serif', '#fff');
     drawRotatedText(ctx, t('mapKamiteWing'), 591, 126, Math.PI/2, '900 17px "Noto Sans JP", sans-serif', '#fff');
     // shell
-    ctx.strokeStyle = '#111'; ctx.lineWidth = 3.2; ctx.beginPath(); ctx.moveTo(33,232); ctx.lineTo(607,232); ctx.lineTo(607,307); ctx.lineTo(625,307); ctx.quadraticCurveTo(632,307,632,313); ctx.lineTo(632,342); ctx.quadraticCurveTo(632,348,625,348); ctx.lineTo(607,348); ctx.lineTo(607,574); ctx.lineTo(531,574); ctx.lineTo(531,646); ctx.lineTo(425,646); ctx.lineTo(425,744); ctx.lineTo(74,744); ctx.lineTo(74,646); ctx.lineTo(33,646); ctx.closePath(); ctx.stroke();
-    ctx.lineWidth = 2.2; ctx.beginPath(); ctx.moveTo(74,232); ctx.bezierCurveTo(74,255,56,258,56,258); ctx.lineTo(56,378); ctx.stroke(); ctx.beginPath(); ctx.moveTo(566,232); ctx.bezierCurveTo(566,255,584,258,584,258); ctx.lineTo(584,378); ctx.stroke();
+    ctx.strokeStyle = '#111'; ctx.lineWidth = 3.2; ctx.beginPath(); ctx.moveTo(58,226); ctx.lineTo(582,226); ctx.quadraticCurveTo(584,244,572,260); ctx.lineTo(572,304); ctx.lineTo(602,304); ctx.quadraticCurveTo(622,304,622,322); ctx.lineTo(622,338); ctx.quadraticCurveTo(622,352,602,352); ctx.lineTo(572,352); ctx.lineTo(572,552); ctx.lineTo(523,552); ctx.lineTo(523,628); ctx.lineTo(435,628); ctx.lineTo(435,695); ctx.lineTo(96,695); ctx.lineTo(96,640); ctx.lineTo(58,640); ctx.closePath(); ctx.stroke();
+    ctx.lineWidth = 2.2; ctx.beginPath(); ctx.moveTo(58,226); ctx.bezierCurveTo(58,250,44,254,44,254); ctx.lineTo(44,382); ctx.stroke(); ctx.beginPath(); ctx.moveTo(582,226); ctx.bezierCurveTo(582,250,596,254,596,254); ctx.lineTo(596,382); ctx.stroke();
     drawVerticalText(ctx, t('mapShimoteHanamichi'), 30, 306, '900 14px "Noto Sans JP", sans-serif', '#ff007f', 16);
     drawVerticalText(ctx, t('mapKamiteHanamichi'), 610, 306, '900 14px "Noto Sans JP", sans-serif', '#ff007f', 16);
     // seat zones
     ctx.strokeStyle = '#555'; ctx.lineWidth = 1.4; roundRect(ctx,61,272,130,226,6); ctx.stroke(); roundRect(ctx,210,269,230,255,6); ctx.stroke(); roundRect(ctx,449,272,106,235,6); ctx.stroke();
     [1,2,3,4,5,6,7].forEach((num,index)=>{ const y=290+index*36; drawText(ctx,rowTag(num),202,y,'900 12px "Noto Sans JP", sans-serif','#ff007f','center'); drawText(ctx,rowTag(num),447,y,'900 12px "Noto Sans JP", sans-serif','#ff007f','center'); });
-    drawPillarCanvas(ctx,221,282); drawPillarCanvas(ctx,425,282);
-    drawAreaChipCanvas(ctx,57,499,135,53,t('mapStandingA')); drawAreaChipCanvas(ctx,217,488,208,61,t('mapStandingB')); drawAreaChipCanvas(ctx,452,498,104,48,t('mapStandingC')); drawAreaChipCanvas(ctx,57,579,106,35,t('mapStandingD')); drawAreaChipCanvas(ctx,447,540,112,34,t('mapStandingE'));
+    drawPillarCanvas(ctx,214,282); drawPillarCanvas(ctx,421,282);
+    drawAreaChipCanvas(ctx,57,517,135,53,t('mapStandingA')); drawAreaChipCanvas(ctx,216,507,210,62,t('mapStandingB')); drawAreaChipCanvas(ctx,452,516,102,40,t('mapStandingC')); drawAreaLabelCanvas(ctx,60,585,t('mapStandingD')); drawAreaChipCanvas(ctx,452,560,104,28,t('mapStandingE'));
     // bottom
-    ctx.strokeStyle = '#111'; ctx.lineWidth = 3.2; ctx.beginPath(); ctx.moveTo(190,646); ctx.lineTo(233,646); ctx.lineTo(233,569); ctx.lineTo(425,569); ctx.stroke(); ctx.beginPath(); ctx.moveTo(74,646); ctx.lineTo(105,646); ctx.lineTo(105,663); ctx.lineTo(74,663); ctx.stroke();
-    ctx.lineWidth = 2.8; ctx.beginPath(); ctx.moveTo(74,675); ctx.lineTo(74,744); ctx.lineTo(126,744); ctx.lineTo(126,706); ctx.stroke(); ctx.beginPath(); ctx.moveTo(74,675); ctx.quadraticCurveTo(56,675,40,658); ctx.lineTo(40,744); ctx.stroke(); ctx.beginPath(); ctx.moveTo(425,646); ctx.lineTo(425,682); ctx.quadraticCurveTo(425,694,437,694); ctx.lineTo(531,694); ctx.lineTo(531,620); ctx.stroke();
-    drawText(ctx, t('mapEntrance'), 78, 705, '900 12px "Noto Sans JP", sans-serif', '#ff4fa3', 'left'); drawText(ctx, t('mapEmergency'), 538, 309, '900 11px "Noto Sans JP", sans-serif', '#ff4fa3', 'left');
+    ctx.strokeStyle = '#111'; ctx.lineWidth = 3.2; ctx.beginPath(); ctx.moveTo(208,632); ctx.lineTo(245,632); ctx.lineTo(245,566); ctx.lineTo(432,566); ctx.stroke(); ctx.beginPath(); ctx.moveTo(95,642); ctx.lineTo(127,642); ctx.lineTo(127,657); ctx.lineTo(95,657); ctx.stroke();
+    ctx.lineWidth = 2.8; ctx.beginPath(); ctx.moveTo(95,675); ctx.lineTo(95,735); ctx.lineTo(147,735); ctx.lineTo(147,696); ctx.stroke(); ctx.beginPath(); ctx.moveTo(95,675); ctx.quadraticCurveTo(73,675,54,655); ctx.lineTo(54,735); ctx.stroke(); ctx.beginPath(); ctx.moveTo(431,633); ctx.lineTo(431,676); ctx.quadraticCurveTo(431,685,441,685); ctx.lineTo(532,685); ctx.lineTo(532,612); ctx.stroke(); ctx.beginPath(); ctx.moveTo(431,685); ctx.quadraticCurveTo(431,708,447,708); ctx.lineTo(532,708); ctx.stroke();
+    drawText(ctx, t('mapEntrance'), 74, 695, '900 12px "Noto Sans JP", sans-serif', '#ff4fa3', 'left'); drawText(ctx, t('mapEmergency'), 533, 309, '900 11px "Noto Sans JP", sans-serif', '#ff4fa3', 'left');
     ctx.restore();
   }
 
@@ -451,6 +466,7 @@
   }
 
   function drawAreaChipCanvas(ctx,x,y,w,h,label){ ctx.save(); ctx.fillStyle='#f5e1e9'; ctx.strokeStyle='#111'; ctx.lineWidth=2; roundRect(ctx,x,y,w,h,6); ctx.fill(); ctx.stroke(); drawText(ctx,label, x+w/2, y+h-10, '900 10px "Noto Sans JP", sans-serif', '#ff007f', 'center'); ctx.restore(); }
+  function drawAreaLabelCanvas(ctx,x,y,label){ drawText(ctx,label,x,y,'900 11px "Noto Sans JP", sans-serif','#ff007f','left'); }
   function drawPillarCanvas(ctx,x,y){ ctx.save(); ctx.fillStyle='#000'; ctx.strokeStyle='#00c9e8'; ctx.lineWidth=3; roundRect(ctx,x,y,30,32,2); ctx.fill(); ctx.stroke(); drawText(ctx,t('mapPillar'), x+15, y+20, '900 15px "Noto Sans JP", sans-serif', '#fff', 'center'); ctx.restore(); }
   function drawText(ctx,text,x,y,font,color,align='left'){ ctx.save(); ctx.font=font; ctx.fillStyle=color; ctx.textAlign=align; ctx.textBaseline='alphabetic'; ctx.fillText(text,x,y); ctx.restore(); }
   function drawRotatedText(ctx,text,x,y,angle,font,color){ ctx.save(); ctx.translate(x,y); ctx.rotate(angle); drawText(ctx,text,0,0,font,color,'center'); ctx.restore(); }

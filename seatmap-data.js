@@ -51,7 +51,6 @@
 
   addSeatGroup({ row: 3, nums: [4,5,6,7,8,9], x: 90, y: 353 });
   addSeatGroup({ row: 3, nums: [11,12,13,14,15,16,17,18,19,20,21,22], x: 225, y: 353 });
-  addSeatGroup({ row: 3, nums: [24,25,26,27,28,29,30], x: 436, y: 353 });
 
   addSeatGroup({ row: 4, nums: [2,3,4,5,6,7,8,9], x: 67, y: 389 });
   addSeatGroup({ row: 4, nums: [10,11,12,13,14,15,16,17,18,19,20,21,22,23], x: 214, y: 389 });
@@ -65,14 +64,14 @@
   addSeatGroup({ row: 6, nums: [10,11,12,13,14,15,16,17,18,19,20,21,22,23], x: 214, y: 461 });
   addSeatGroup({ row: 6, nums: [25,26,27,28,29], x: 457, y: 461 });
 
-  addSeatGroup({ row: 7, nums: [1,2,3,4,5,6,7,8,9], x: 53, y: 497 });
-  addSeatGroup({ row: 7, nums: [25,26,27,28,29], x: 457, y: 497 });
+  addSeatGroup({ row: 7, nums: [1,2,3,4,5,6,7,8,9], x: 53, y: 490 });
+  addSeatGroup({ row: 7, nums: [25,26,27,28,29], x: 456, y: 490 });
 
-  const rearXs = [103,133,163,193,223,253,283,313,343,373,403,433,463,493,523];
+  const rearXs = [105,135,165,195,225,255,285,315,345,375,405,435,465,495,525];
   const rearNums = [7,6,5,4,3,2,1,0,1,2,3,4,5,6,7];
   rearXs.forEach((x, index) => {
-    addMark(`rear-stage-${index + 1}`, x, 55, rearNums[index], 'rear-stage');
-    addMark(`rear-main-${index + 1}`, x, 214, rearNums[index], 'rear-main');
+    addMark(`rear-stage-${index + 1}`, x, 58, rearNums[index], 'rear-stage');
+    addMark(`rear-main-${index + 1}`, x, 211, rearNums[index], 'rear-main');
   });
 
   const sideY = [243, 268, 293, 329, 380];
@@ -80,6 +79,24 @@
     addMark(`left-side-${num}`, 49, sideY[index], num, 'left-side');
     addMark(`right-side-${num}`, 575, sideY[index], num, 'right-side');
   });
+
+
+  function addStandingCustom(area, cells) {
+    cells.forEach(cell => {
+      addItem({
+        id: `standing-${area.toLowerCase()}-r${cell.row}-c${cell.number}`,
+        type: 'standing',
+        area,
+        zone: `standing-${area.toLowerCase()}`,
+        row: cell.row,
+        number: cell.number,
+        x: cell.x,
+        y: cell.y,
+        w: cell.w,
+        h: cell.h
+      });
+    });
+  }
 
   function addStandingArea({ area, x, y, w, h, rows, cols }) {
     const gap = 2;
@@ -103,14 +120,29 @@
     }
   }
 
-  addStandingArea({ area: 'A', x: 64, y: 501, w: 124, h: 42, rows: 3, cols: 9 });
-  addStandingArea({ area: 'B', x: 218, y: 497, w: 204, h: 46, rows: 3, cols: 14 });
-  addStandingArea({ area: 'C', x: 457, y: 501, w: 92, h: 39, rows: 2, cols: 5 });
-  addStandingArea({ area: 'D', x: 65, y: 586, w: 103, h: 30, rows: 2, cols: 7 });
-  addStandingArea({ area: 'E', x: 452, y: 548, w: 104, h: 20, rows: 1, cols: 6 });
+  addStandingArea({ area: 'A', x: 64, y: 521, w: 124, h: 36, rows: 3, cols: 9 });
+  addStandingArea({ area: 'B', x: 219, y: 516, w: 205, h: 42, rows: 3, cols: 14 });
+  addStandingArea({ area: 'C', x: 459, y: 520, w: 88, h: 30, rows: 2, cols: 5 });
+  addStandingArea({ area: 'E', x: 458, y: 568, w: 98, h: 18, rows: 1, cols: 6 });
+  addStandingCustom('D', [
+    { row: 1, number: 1, x: 65, y: 592, w: 13, h: 12 },
+    { row: 1, number: 2, x: 80, y: 592, w: 13, h: 12 },
+    { row: 1, number: 3, x: 96, y: 592, w: 13, h: 12 },
+    { row: 1, number: 4, x: 112, y: 593, w: 13, h: 12 },
+    { row: 1, number: 5, x: 128, y: 592, w: 13, h: 12 },
+    { row: 1, number: 6, x: 144, y: 593, w: 13, h: 12 },
+    { row: 1, number: 7, x: 160, y: 592, w: 13, h: 12 },
+    { row: 2, number: 1, x: 65, y: 607, w: 13, h: 12 },
+    { row: 2, number: 2, x: 80, y: 608, w: 13, h: 12 },
+    { row: 2, number: 3, x: 96, y: 607, w: 13, h: 12 },
+    { row: 2, number: 4, x: 112, y: 608, w: 13, h: 12 },
+    { row: 2, number: 5, x: 128, y: 607, w: 13, h: 12 },
+    { row: 2, number: 6, x: 144, y: 608, w: 13, h: 12 },
+    { row: 2, number: 7, x: 160, y: 607, w: 13, h: 12 }
+  ]);
 
   window.SEATMAP_DATA = {
-    version: '2.1.0',
+    version: '2.4.0',
     width: 640,
     height: 760,
     exportFooterHeight: 134,

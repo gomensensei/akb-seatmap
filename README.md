@@ -1,3 +1,3 @@
-# AKB48 Seat Memo v2.1.0
+# AKB48 Seat Memo v2.4.0
 
-Minor fixes update.
+Final traced alignment pass.
