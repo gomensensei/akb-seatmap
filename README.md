@@ -1,3 +1,3 @@
-# AKB48 Seat Memo v3.3.0
+# AKB48 Seat Memo v3.4.0
 
-Mobile zoom / overflow / Safari preview hotfix.
+Low-tilt controls and expanded language support.

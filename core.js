@@ -28,8 +28,10 @@ function initSpatialGlass() {
             const rect = card.getBoundingClientRect();
             const x = e.clientX - rect.left; const y = e.clientY - rect.top;
             const centerX = rect.width / 2; const centerY = rect.height / 2;
-            const rotateX = ((y - centerY) / centerY) * -10; 
-            const rotateY = ((x - centerX) / centerX) * 10;
+            const strengthRaw = Number.parseFloat(card.dataset.tiltStrength || '1');
+            const strength = Number.isFinite(strengthRaw) ? Math.max(0, Math.min(1, strengthRaw)) : 1;
+            const rotateX = ((y - centerY) / centerY) * -10 * strength; 
+            const rotateY = ((x - centerX) / centerX) * 10 * strength;
             
             card.style.setProperty('--rx', `${rotateX}deg`); card.style.setProperty('--ry', `${rotateY}deg`);
             card.style.setProperty('--glare-x', `${x}px`); card.style.setProperty('--glare-y', `${y}px`);

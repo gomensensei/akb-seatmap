@@ -3,6 +3,7 @@
   'use strict';
 
   const svgNS = 'http://www.w3.org/2000/svg';
+  const SUPPORTED_LANGS = ['ja', 'zh', 'zh-Hans', 'ko', 'th', 'id', 'en'];
   const state = { lang: 'ja', i18n: {}, selectedId: null, performanceId: 'reset', eventDate: '', displayName: '', mapZoom: 1 };
   const els = {
     html: document.documentElement,
@@ -62,10 +63,14 @@
 
   function detectLanguage() {
     const saved = localStorage.getItem('seatmapLang');
-    if (saved && ['ja', 'zh', 'en'].includes(saved)) return saved;
+    if (saved && SUPPORTED_LANGS.includes(saved)) return saved;
     const nav = (navigator.language || navigator.userLanguage || 'ja').toLowerCase();
+    if (nav.startsWith('zh-cn') || nav.startsWith('zh-sg') || nav.includes('hans')) return 'zh-Hans';
     if (nav.startsWith('zh')) return 'zh';
     if (nav.startsWith('ja')) return 'ja';
+    if (nav.startsWith('ko')) return 'ko';
+    if (nav.startsWith('th')) return 'th';
+    if (nav.startsWith('id') || nav.startsWith('in')) return 'id';
     return 'en';
   }
 
@@ -89,7 +94,7 @@
     const hashSeat = params.get('seat');
     const hashName = params.get('name');
     const hashEventDate = params.get('eventDate');
-    if (hashLang && ['ja', 'zh', 'en'].includes(hashLang)) state.lang = hashLang;
+    if (hashLang && SUPPORTED_LANGS.includes(hashLang)) state.lang = hashLang;
     if (hashShow && SEATMAP_DATA.performances.some(p => p.id === hashShow)) state.performanceId = hashShow;
     if (hashSeat && itemById.has(hashSeat)) state.selectedId = hashSeat;
     if (hashEventDate) state.eventDate = decodeURIComponent(hashEventDate).slice(0, 40);
@@ -308,7 +313,7 @@
     const cy = item.y + item.h / 2;
     const above = cy > 86;
     const group = svgEl('g', { class: 'arrow-callout' });
-    const labelW = state.lang === 'en' ? 94 : 82;
+    const labelW = ['en', 'id', 'th'].includes(state.lang) ? 108 : 82;
     const labelH = 25;
     const labelX = clamp(cx - labelW / 2, 10, SEATMAP_DATA.width - labelW - 10);
     const labelY = above ? Math.max(18, cy - 62) : cy + 38;
@@ -350,10 +355,18 @@
     if (!item) return t('noSelection');
     if (item.type === 'standing') {
       if (state.lang === 'zh') return `立見區域 ${item.area} 第 ${item.row} 行 ${item.number} 號`;
+      if (state.lang === 'zh-Hans') return `站席区域 ${item.area} 第 ${item.row} 行 ${item.number} 号`;
+      if (state.lang === 'ko') return `스탠딩 구역 ${item.area} ${item.row}행 ${item.number}번`;
+      if (state.lang === 'th') return `โซนยืน ${item.area} แถว ${item.row} ช่อง ${item.number}`;
+      if (state.lang === 'id') return `Area berdiri ${item.area} / Baris ${item.row} / Slot ${item.number}`;
       if (state.lang === 'en') return `Standing Area ${item.area} / Row ${item.row} / Slot ${item.number}`;
       return `立見エリア ${item.area} ${item.row}行 ${item.number}番`;
     }
     if (state.lang === 'zh') return `${item.row} 列 ${item.number} 號`;
+    if (state.lang === 'zh-Hans') return `${item.row} 排 ${item.number} 号`;
+    if (state.lang === 'ko') return `${item.row}열 ${item.number}번`;
+    if (state.lang === 'th') return `แถว ${item.row} / ที่นั่ง ${item.number}`;
+    if (state.lang === 'id') return `Baris ${item.row} / Kursi ${item.number}`;
     if (state.lang === 'en') return `Row ${item.row} / Seat ${item.number}`;
     return `${item.row}列 ${item.number}番`;
   }
@@ -444,7 +457,7 @@
     const cx = item.x + item.w / 2;
     const cy = item.y + item.h / 2;
     const above = cy > 86;
-    const labelW = state.lang === 'en' ? 94 : 82;
+    const labelW = ['en', 'id', 'th'].includes(state.lang) ? 108 : 82;
     const labelH = 25;
     const labelX = clamp(cx - labelW / 2, 10, SEATMAP_DATA.width - labelW - 10);
     const labelY = above ? Math.max(18, cy - 62) : cy + 38;

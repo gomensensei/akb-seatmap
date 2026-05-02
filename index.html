@@ -8,8 +8,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="core.css?v=3.3.0" />
-  <link rel="stylesheet" href="style.css?v=3.3.0" />
+  <link rel="stylesheet" href="core.css?v=3.4.0" />
+  <link rel="stylesheet" href="style.css?v=3.4.0" />
 </head>
 <body class="native-feel">
   <div class="app-shell">
@@ -24,6 +24,10 @@
         <select id="langSelect" class="control-input lang-input">
           <option value="ja">日本語</option>
           <option value="zh">繁體中文</option>
+          <option value="zh-Hans">简体中文</option>
+          <option value="ko">한국어</option>
+          <option value="th">ไทย</option>
+          <option value="id">Bahasa Indonesia</option>
           <option value="en">English</option>
         </select>
       </div>
@@ -42,13 +46,13 @@
 
         <div class="map-scroll" id="mapScroll">
           <div class="map-stage" id="mapStage">
-            <img src="assets/seatmap.svg?v=3.3.0" alt="AKB48 theater seat map" id="baseSeatMap" class="seatmap-base allow-save" draggable="false" />
+            <img src="assets/seatmap.svg?v=3.4.0" alt="AKB48 theater seat map" id="baseSeatMap" class="seatmap-base allow-save" draggable="false" />
             <svg id="seatOverlay" class="seat-overlay" viewBox="0 0 760 640" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Interactive seat overlay"></svg>
           </div>
         </div>
       </section>
 
-      <aside class="control-card apple-glass-3d">
+      <aside class="control-card apple-glass-3d" data-tilt-strength="0.16">
         <div class="control-section">
           <label class="field-label" for="performanceSelect" data-i18n="performance">公演名</label>
           <select id="performanceSelect" class="control-input"></select>
@@ -100,8 +104,8 @@
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-  <script src="core.js?v=3.3.0"></script>
-  <script src="seatmap-data.js?v=3.3.0"></script>
-  <script src="script.js?v=3.3.0"></script>
+  <script src="core.js?v=3.4.0"></script>
+  <script src="seatmap-data.js?v=3.4.0"></script>
+  <script src="script.js?v=3.4.0"></script>
 </body>
 </html>
