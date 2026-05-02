@@ -8,14 +8,14 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="core.css?v=3.0.0" />
-  <link rel="stylesheet" href="style.css?v=3.0.0" />
+  <link rel="stylesheet" href="core.css?v=3.1.0" />
+  <link rel="stylesheet" href="style.css?v=3.1.0" />
 </head>
 <body class="native-feel">
   <div class="app-shell">
     <header class="hero apple-glass-3d hover-glow">
       <div class="hero-copy">
-        <p class="eyebrow" data-i18n="eyebrow">AKB48 Theatre Seat Memo</p>
+        <p class="eyebrow" data-i18n="eyebrow">AKB48 Theater Seat Memo</p>
         <h1 data-i18n="appTitle">座席メモメーカー</h1>
         <p class="lead" data-i18n="lead">座席や立見位置を選択して、ピンクの応援矢印つき画像として保存できます。</p>
       </div>
@@ -31,7 +31,7 @@
 
         <div class="map-scroll" id="mapScroll">
           <div class="map-stage" id="mapStage">
-            <img src="assets/seatmap.svg?v=3.0.0" alt="AKB48 theatre seat map" id="baseSeatMap" class="seatmap-base allow-save" draggable="false" />
+            <img src="assets/seatmap.svg?v=3.1.0" alt="AKB48 theatre seat map" id="baseSeatMap" class="seatmap-base allow-save" draggable="false" />
             <svg id="seatOverlay" class="seat-overlay" viewBox="0 0 760 640" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Interactive seat overlay"></svg>
           </div>
         </div>
@@ -50,6 +50,11 @@
         <div class="control-section">
           <label class="field-label" for="performanceSelect" data-i18n="performance">公演名</label>
           <select id="performanceSelect" class="control-input"></select>
+        </div>
+
+        <div class="control-section">
+          <label class="field-label" for="eventDateInput" data-i18n="eventDate">イベント日時</label>
+          <input id="eventDateInput" class="control-input" type="datetime-local" />
         </div>
 
         <div class="control-section">
@@ -75,6 +80,11 @@
         </div>
       </aside>
     </main>
+
+    <footer class="site-footer apple-glass-3d">
+      <p data-i18n="siteDisclaimer">本サイトはファンである ゴメン先生 (gomensensei) が作成した非公式のものであり、AKB48運営とは一切関係ありません。各権利者に帰属します。</p>
+    </footer>
+
   </div>
 
   <div class="modal-backdrop" id="exportModal" hidden>
@@ -89,8 +99,8 @@
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-  <script src="core.js?v=3.0.0"></script>
-  <script src="seatmap-data.js?v=3.0.0"></script>
-  <script src="script.js?v=3.0.0"></script>
+  <script src="core.js?v=3.1.0"></script>
+  <script src="seatmap-data.js?v=3.1.0"></script>
+  <script src="script.js?v=3.1.0"></script>
 </body>
 </html>

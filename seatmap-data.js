@@ -3156,5 +3156,5 @@
   }
 ];
 
-  window.SEATMAP_DATA = { version: '3.0.0-svg-master', width: 760, height: 640, exportFooterHeight: 134, performances, items };
+  window.SEATMAP_DATA = { version: '3.1.0-svg-master', width: 760, height: 640, exportFooterHeight: 0, performances, items };
 }());

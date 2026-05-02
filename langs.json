@@ -1,6 +1,6 @@
 {
   "ja": {
-    "eyebrow": "AKB48 Theatre Seat Memo",
+    "eyebrow": "AKB48 Theater Seat Memo",
     "appTitle": "座席メモメーカー",
     "lead": "座席や立見位置を選択して、ピンクの応援矢印つき画像として保存できます。",
     "language": "言語",
@@ -26,11 +26,14 @@
     "copied": "リンクをコピーしました。",
     "copyFailed": "コピーできませんでした。URLを手動でコピーしてください。",
     "cleared": "選択を解除しました。",
-    "exportTitle": "AKB48 Seat Memo",
-    "arrowText": "ここ！"
+    "exportTitle": "AKB48 座席メモ",
+    "arrowText": "ここ！",
+    "eventDate": "イベント日時",
+    "eventDateLabel": "イベント日時",
+    "siteDisclaimer": "本サイトはファンである ゴメン先生 (gomensensei) が作成した非公式のものであり、AKB48運営とは一切関係ありません。各権利者に帰属します。"
   },
   "zh": {
-    "eyebrow": "AKB48 Theatre Seat Memo",
+    "eyebrow": "AKB48 Theater Seat Memo",
     "appTitle": "座位記錄產生器",
     "lead": "點選座位或立見位置，即可加上演唱會應援感粉紅箭咀，並輸出成圖片保存。",
     "language": "語言",
@@ -56,11 +59,14 @@
     "copied": "已複製連結。",
     "copyFailed": "未能複製，請手動複製網址。",
     "cleared": "已清除選擇。",
-    "exportTitle": "AKB48 Seat Memo",
-    "arrowText": "就是這裡！"
+    "exportTitle": "AKB48 座位記錄",
+    "arrowText": "就是這裡！",
+    "eventDate": "活動日期及時間",
+    "eventDateLabel": "活動日期及時間",
+    "siteDisclaimer": "本網站由粉絲 ゴメン先生 (gomensensei) 製作，屬非官方網站，與 AKB48 營運方完全無關。相關權利均歸各權利持有人所有。"
   },
   "en": {
-    "eyebrow": "AKB48 Theatre Seat Memo",
+    "eyebrow": "AKB48 Theater Seat Memo",
     "appTitle": "Seat Memo Maker",
     "lead": "Select a seat or standing slot, mark it with a concert-style pink arrow, and save it as an image.",
     "language": "Language",
@@ -87,6 +93,9 @@
     "copyFailed": "Could not copy. Please copy the URL manually.",
     "cleared": "Selection cleared.",
     "exportTitle": "AKB48 Seat Memo",
-    "arrowText": "HERE!"
+    "arrowText": "HERE!",
+    "eventDate": "Event date & time",
+    "eventDateLabel": "Event date & time",
+    "siteDisclaimer": "This site is an unofficial fan-made site created by Gomensensei (gomensensei) and is not affiliated with AKB48 management. All rights belong to their respective rights holders."
   }
 }

@@ -72,3 +72,16 @@ button:disabled { opacity:.48; cursor:not-allowed; transform:none!important; }
   .map-stage { min-width:680px; }
   .button-row { grid-template-columns:1fr; }
 }
+
+
+.site-footer {
+  margin-top: 18px;
+  padding: 14px 18px;
+  background: rgba(255,255,255,.46);
+  border-radius: 22px;
+  color: var(--text-sec);
+  font-size: .82rem;
+  font-weight: 700;
+  line-height: 1.7;
+}
+.site-footer p { margin: 0; }

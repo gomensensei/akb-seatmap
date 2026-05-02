@@ -3,7 +3,7 @@
   'use strict';
 
   const svgNS = 'http://www.w3.org/2000/svg';
-  const state = { lang: 'ja', i18n: {}, selectedId: null, performanceId: 'reset', displayName: '' };
+  const state = { lang: 'ja', i18n: {}, selectedId: null, performanceId: 'reset', eventDate: '', displayName: '' };
   const els = {
     html: document.documentElement,
     overlay: document.getElementById('seatOverlay'),
@@ -11,6 +11,7 @@
     selectionSummary: document.getElementById('selectionSummary'),
     selectionSub: document.getElementById('selectionSub'),
     performanceSelect: document.getElementById('performanceSelect'),
+    eventDateInput: document.getElementById('eventDateInput'),
     langSelect: document.getElementById('langSelect'),
     nameInput: document.getElementById('nameInput'),
     downloadBtn: document.getElementById('downloadBtn'),
@@ -77,9 +78,11 @@
     const hashShow = params.get('show');
     const hashSeat = params.get('seat');
     const hashName = params.get('name');
+    const hashEventDate = params.get('eventDate');
     if (hashLang && ['ja', 'zh', 'en'].includes(hashLang)) state.lang = hashLang;
     if (hashShow && SEATMAP_DATA.performances.some(p => p.id === hashShow)) state.performanceId = hashShow;
     if (hashSeat && itemById.has(hashSeat)) state.selectedId = hashSeat;
+    if (hashEventDate) state.eventDate = decodeURIComponent(hashEventDate).slice(0, 40);
     if (hashName) state.displayName = decodeURIComponent(hashName).slice(0, 28);
   }
 
@@ -88,6 +91,7 @@
     params.set('lang', state.lang);
     params.set('show', state.performanceId);
     if (state.selectedId) params.set('seat', state.selectedId);
+    if (state.eventDate) params.set('eventDate', state.eventDate);
     if (state.displayName) params.set('name', state.displayName);
     history.replaceState(null, '', `#${params.toString()}`);
   }
@@ -112,6 +116,7 @@
       renderSelection();
       updateUI();
     });
+    els.eventDateInput.addEventListener('input', () => { state.eventDate = els.eventDateInput.value.trim().slice(0, 40); syncHash(); });
     els.nameInput.addEventListener('input', () => { state.displayName = els.nameInput.value.trim().slice(0, 28); syncHash(); });
     els.downloadBtn.addEventListener('click', exportImage);
     els.clearBtn.addEventListener('click', clearSelection);
@@ -229,6 +234,7 @@
     els.performanceSelect.value = state.performanceId;
     els.langSelect.value = state.lang;
     els.nameInput.value = state.displayName;
+    els.eventDateInput.value = state.eventDate;
     if (!item) {
       els.selectedPill.textContent = t('noSelection');
       els.selectionSummary.textContent = t('noSelection');
@@ -298,7 +304,7 @@
 
   async function buildExportPng() {
     const logicalW = SEATMAP_DATA.width;
-    const logicalH = SEATMAP_DATA.height + SEATMAP_DATA.exportFooterHeight;
+    const logicalH = SEATMAP_DATA.height;
     const scale = 3;
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
@@ -307,11 +313,11 @@
     ctx.scale(scale, scale);
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, logicalW, logicalH);
-    const image = await loadImage('assets/seatmap.svg?v=3.0.0');
+    const image = await loadImage('assets/seatmap.svg?v=3.1.0');
     ctx.drawImage(image, 0, 0, logicalW, SEATMAP_DATA.height);
     const item = itemById.get(state.selectedId);
     if (item) { drawSelectedMark(ctx, item); drawCanvasArrow(ctx, item); }
-    drawFooter(ctx, item);
+    drawExportInfoPanel(ctx, item);
     return canvas.toDataURL('image/png');
   }
 
@@ -377,28 +383,57 @@
     ctx.restore();
   }
 
-  function drawFooter(ctx, item) {
-    const y = SEATMAP_DATA.height;
-    const footerH = SEATMAP_DATA.exportFooterHeight;
+  function drawExportInfoPanel(ctx, item) {
     const performance = getCurrentPerformance();
     const seatLabel = item ? getLocalizedSeatLabel(item) : t('noSelection');
+    const eventDate = formatEventDateForDisplay(state.eventDate);
+    const panelX = 500;
+    const panelY = 518;
+    const panelW = 238;
+    const panelH = state.displayName ? 104 : 88;
+    const accent = '#ff007f';
+
     ctx.save();
-    ctx.fillStyle = '#fff7fb';
-    ctx.fillRect(0, y, SEATMAP_DATA.width, footerH);
-    ctx.fillStyle = '#ff007f';
-    ctx.fillRect(0, y, SEATMAP_DATA.width, 5);
+    ctx.shadowColor = 'rgba(27, 35, 48, 0.16)';
+    ctx.shadowBlur = 10;
+    ctx.fillStyle = 'rgba(255, 247, 251, 0.96)';
+    ctx.strokeStyle = accent;
+    ctx.lineWidth = 1.6;
+    roundRect(ctx, panelX, panelY, panelW, panelH, 14);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = accent;
+    roundRect(ctx, panelX + 12, panelY + 12, 5, panelH - 24, 3);
+    ctx.fill();
+
     const lines = [
-      { text: t('exportTitle'), font: '900 20px "Noto Sans JP", sans-serif', color: '#1b2330', h: 22, gap: 4 },
-      { text: `${t('performanceLabel')}：${performance.label}`, font: '800 14px "Noto Sans JP", sans-serif', color: '#ff007f', h: 18, gap: 3 },
-      { text: `${t('mySeat')}：${seatLabel}`, font: '900 18px "Noto Sans JP", sans-serif', color: '#1b2330', h: 20, gap: state.displayName ? 3 : 0 }
+      { text: t('exportTitle'), font: '900 18px "Noto Sans JP", sans-serif', color: '#1b2330', x: panelX + 25, y: panelY + 27 },
+      { text: `${t('performanceLabel')}：${performance.label}`, font: '800 11px "Noto Sans JP", sans-serif', color: accent, x: panelX + 25, y: panelY + 48 },
+      { text: `${t('eventDateLabel')}：${eventDate || '—'}`, font: '800 11px "Noto Sans JP", sans-serif', color: '#1b2330', x: panelX + 25, y: panelY + 65 },
+      { text: `${t('mySeat')}：${seatLabel}`, font: '900 13px "Noto Sans JP", sans-serif', color: '#1b2330', x: panelX + 25, y: panelY + 83 }
     ];
-    if (state.displayName) lines.push({ text: `${t('nameLabel')}：${state.displayName}`, font: '700 12px "Noto Sans JP", sans-serif', color: '#7F8C8D', h: 16, gap: 0 });
-    if (typeof drawInfoGraphicText === 'function') drawInfoGraphicText(ctx, SEATMAP_DATA.width / 2, y + footerH / 2 + 2, lines);
-    else {
-      ctx.textAlign = 'center'; ctx.textBaseline = 'top'; let currentY = y + 24;
-      lines.forEach(line => { ctx.font = line.font; ctx.fillStyle = line.color; ctx.fillText(line.text, SEATMAP_DATA.width / 2, currentY); currentY += line.h + line.gap; });
+    if (state.displayName) {
+      lines.push({ text: `${t('nameLabel')}：${state.displayName}`, font: '700 10px "Noto Sans JP", sans-serif', color: '#7F8C8D', x: panelX + 25, y: panelY + 99 });
     }
+
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+    lines.forEach(line => {
+      ctx.font = line.font;
+      ctx.fillStyle = line.color;
+      ctx.fillText(line.text, line.x, line.y, panelW - 38);
+    });
     ctx.restore();
+  }
+
+  function formatEventDateForDisplay(value) {
+    if (!value) return '';
+    const normalized = value.replace('T', ' ');
+    if (state.lang === 'en') return normalized;
+    if (state.lang === 'zh') return normalized;
+    return normalized;
   }
 
   function roundRect(ctx, x, y, w, h, r) {
