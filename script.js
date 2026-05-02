@@ -121,7 +121,7 @@
     els.downloadBtn.addEventListener('click', exportImage);
     els.clearBtn.addEventListener('click', clearSelection);
     els.copyLinkBtn.addEventListener('click', copyShareLink);
-    els.zoomResetBtn.addEventListener('click', () => resetMapView(true));
+    if (els.zoomResetBtn) els.zoomResetBtn.addEventListener('click', () => resetMapView(true));
   }
 
   function applyLanguage() {
@@ -313,7 +313,7 @@
     ctx.scale(scale, scale);
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, logicalW, logicalH);
-    const image = await loadImage('assets/seatmap.svg?v=3.1.0');
+    const image = await loadImage('assets/seatmap.svg?v=3.2.0');
     ctx.drawImage(image, 0, 0, logicalW, SEATMAP_DATA.height);
     const item = itemById.get(state.selectedId);
     if (item) { drawSelectedMark(ctx, item); drawCanvasArrow(ctx, item); }
