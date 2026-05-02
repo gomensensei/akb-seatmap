@@ -14,11 +14,9 @@
     "download": "画像を保存",
     "clear": "選択解除",
     "copyLink": "共有リンクをコピー",
-    "resetView": "表示を戻す",
     "safariNote": "iPhone / Safari では画像プレビューが開きます。長押しして保存してください。",
     "modalTitle": "画像プレビュー",
     "modalInstruction": "画像を長押しして保存してください。",
-    "openImage": "画像を新しいタブで開く",
     "mySeat": "私の位置",
     "performanceLabel": "公演名",
     "nameLabel": "表示名",
@@ -30,7 +28,9 @@
     "arrowText": "ここ！",
     "eventDate": "イベント日時",
     "eventDateLabel": "イベント日時",
-    "siteDisclaimer": "本サイトはファンである ゴメン先生 (gomensensei) が作成した非公式のものであり、AKB48運営とは一切関係ありません。各権利者に帰属します。"
+    "siteDisclaimer": "本サイトはファンである ゴメン先生 (gomensensei) が作成した非公式のものであり、AKB48運営とは一切関係ありません。各権利者に帰属します。",
+    "zoomOut": "縮小",
+    "zoomIn": "拡大"
   },
   "zh": {
     "eyebrow": "AKB48 Theater Seat Memo",
@@ -47,11 +47,9 @@
     "download": "儲存圖片",
     "clear": "清除選擇",
     "copyLink": "複製分享連結",
-    "resetView": "重設顯示",
     "safariNote": "iPhone / Safari 會顯示圖片預覽，長按圖片即可儲存。",
     "modalTitle": "圖片預覽",
     "modalInstruction": "請長按圖片，然後選擇儲存圖片。",
-    "openImage": "在新分頁打開圖片",
     "mySeat": "我的位置",
     "performanceLabel": "公演名",
     "nameLabel": "顯示名稱",
@@ -63,7 +61,9 @@
     "arrowText": "就是這裡！",
     "eventDate": "活動日期及時間",
     "eventDateLabel": "活動日期及時間",
-    "siteDisclaimer": "本網站由粉絲 ゴメン先生 (gomensensei) 製作，屬非官方網站，與 AKB48 營運方完全無關。相關權利均歸各權利持有人所有。"
+    "siteDisclaimer": "本網站由粉絲 ゴメン先生 (gomensensei) 製作，屬非官方網站，與 AKB48 營運方完全無關。相關權利均歸各權利持有人所有。",
+    "zoomOut": "縮小地圖",
+    "zoomIn": "放大地圖"
   },
   "en": {
     "eyebrow": "AKB48 Theater Seat Memo",
@@ -80,11 +80,9 @@
     "download": "Save image",
     "clear": "Clear",
     "copyLink": "Copy share link",
-    "resetView": "Reset view",
     "safariNote": "On iPhone / Safari, an image preview will open. Long-press it to save.",
     "modalTitle": "Image Preview",
     "modalInstruction": "Long-press the image to save it.",
-    "openImage": "Open image in new tab",
     "mySeat": "My Position",
     "performanceLabel": "Performance",
     "nameLabel": "Display name",
@@ -96,6 +94,8 @@
     "arrowText": "HERE!",
     "eventDate": "Event date & time",
     "eventDateLabel": "Event date & time",
-    "siteDisclaimer": "This site is an unofficial fan-made site created by Gomensensei (gomensensei) and is not affiliated with AKB48 management. All rights belong to their respective rights holders."
+    "siteDisclaimer": "This site is an unofficial fan-made site created by Gomensensei (gomensensei) and is not affiliated with AKB48 management. All rights belong to their respective rights holders.",
+    "zoomOut": "Zoom out",
+    "zoomIn": "Zoom in"
   }
 }

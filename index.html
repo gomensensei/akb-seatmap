@@ -8,8 +8,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="core.css?v=3.2.0" />
-  <link rel="stylesheet" href="style.css?v=3.2.0" />
+  <link rel="stylesheet" href="core.css?v=3.3.0" />
+  <link rel="stylesheet" href="style.css?v=3.3.0" />
 </head>
 <body class="native-feel">
   <div class="app-shell">
@@ -33,11 +33,16 @@
       <section class="map-card" aria-label="Seat map">
         <div class="map-toolbar">
           <div class="selected-pill" id="selectedPill" data-i18n="noSelection">まだ選択されていません</div>
+          <div class="zoom-control" aria-label="Map zoom">
+            <button class="zoom-button" id="zoomOutBtn" type="button" data-i18n-aria-label="zoomOut" aria-label="Zoom out">−</button>
+            <span class="zoom-level" id="zoomLevel" aria-live="polite">100%</span>
+            <button class="zoom-button" id="zoomInBtn" type="button" data-i18n-aria-label="zoomIn" aria-label="Zoom in">＋</button>
+          </div>
         </div>
 
         <div class="map-scroll" id="mapScroll">
           <div class="map-stage" id="mapStage">
-            <img src="assets/seatmap.svg?v=3.2.0" alt="AKB48 theater seat map" id="baseSeatMap" class="seatmap-base allow-save" draggable="false" />
+            <img src="assets/seatmap.svg?v=3.3.0" alt="AKB48 theater seat map" id="baseSeatMap" class="seatmap-base allow-save" draggable="false" />
             <svg id="seatOverlay" class="seat-overlay" viewBox="0 0 760 640" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Interactive seat overlay"></svg>
           </div>
         </div>
@@ -90,14 +95,13 @@
       <h2 id="exportModalTitle" data-i18n="modalTitle">画像プレビュー</h2>
       <p data-i18n="modalInstruction">画像を長押しして保存してください。</p>
       <img id="exportPreview" class="export-preview allow-save" alt="Export preview" />
-      <a id="openImageLink" class="secondary-button modal-link" target="_blank" rel="noopener" data-i18n="openImage">画像を新しいタブで開く</a>
     </div>
   </div>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-  <script src="core.js?v=3.2.0"></script>
-  <script src="seatmap-data.js?v=3.2.0"></script>
-  <script src="script.js?v=3.2.0"></script>
+  <script src="core.js?v=3.3.0"></script>
+  <script src="seatmap-data.js?v=3.3.0"></script>
+  <script src="script.js?v=3.3.0"></script>
 </body>
 </html>

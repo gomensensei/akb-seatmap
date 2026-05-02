@@ -3,7 +3,7 @@
   'use strict';
 
   const svgNS = 'http://www.w3.org/2000/svg';
-  const state = { lang: 'ja', i18n: {}, selectedId: null, performanceId: 'reset', eventDate: '', displayName: '' };
+  const state = { lang: 'ja', i18n: {}, selectedId: null, performanceId: 'reset', eventDate: '', displayName: '', mapZoom: 1 };
   const els = {
     html: document.documentElement,
     overlay: document.getElementById('seatOverlay'),
@@ -19,13 +19,21 @@
     copyLinkBtn: document.getElementById('copyLinkBtn'),
     zoomResetBtn: document.getElementById('zoomResetBtn'),
     mapScroll: document.getElementById('mapScroll'),
+    mapStage: document.getElementById('mapStage'),
+    zoomOutBtn: document.getElementById('zoomOutBtn'),
+    zoomInBtn: document.getElementById('zoomInBtn'),
+    zoomLevel: document.getElementById('zoomLevel'),
     modal: document.getElementById('exportModal'),
     modalCloseBtn: document.getElementById('modalCloseBtn'),
     exportPreview: document.getElementById('exportPreview'),
-    openImageLink: document.getElementById('openImageLink'),
     toast: document.getElementById('toast')
   };
   const itemById = new Map(SEATMAP_DATA.items.map(item => [item.id, item]));
+  const ZOOM_MIN = 0.85;
+  const ZOOM_MAX = 2.35;
+  const ZOOM_STEP = 0.15;
+  let pinchState = null;
+  let resizeTimer = null;
 
   bindModalFailsafe();
   document.addEventListener('DOMContentLoaded', init);
@@ -45,8 +53,10 @@
     buildPerformanceOptions();
     renderOverlay();
     bindEvents();
+    bindMapZoomGestures();
     applyLanguage();
     updateUI();
+    applyMapZoom();
     resetMapView(false);
   }
 
@@ -121,7 +131,12 @@
     els.downloadBtn.addEventListener('click', exportImage);
     els.clearBtn.addEventListener('click', clearSelection);
     els.copyLinkBtn.addEventListener('click', copyShareLink);
-    if (els.zoomResetBtn) els.zoomResetBtn.addEventListener('click', () => resetMapView(true));
+    if (els.zoomOutBtn) els.zoomOutBtn.addEventListener('click', () => setMapZoom(state.mapZoom - ZOOM_STEP));
+    if (els.zoomInBtn) els.zoomInBtn.addEventListener('click', () => setMapZoom(state.mapZoom + ZOOM_STEP));
+    window.addEventListener('resize', () => {
+      window.clearTimeout(resizeTimer);
+      resizeTimer = window.setTimeout(() => { applyMapZoom(); resetMapView(false); }, 120);
+    });
   }
 
   function applyLanguage() {
@@ -130,11 +145,93 @@
     els.langSelect.value = state.lang;
     document.querySelectorAll('[data-i18n]').forEach(node => { node.textContent = t(node.dataset.i18n); });
     document.querySelectorAll('[data-i18n-placeholder]').forEach(node => { node.placeholder = t(node.dataset.i18nPlaceholder); });
+    document.querySelectorAll('[data-i18n-aria-label]').forEach(node => { node.setAttribute('aria-label', t(node.dataset.i18nAriaLabel)); });
   }
 
   function resetMapView(withToast) {
     const targetLeft = Math.max(0, (els.mapScroll.scrollWidth - els.mapScroll.clientWidth) / 2);
     els.mapScroll.scrollTo({ left: targetLeft, top: 0, behavior: withToast ? 'smooth' : 'auto' });
+  }
+
+  function getBaseMapWidth() {
+    if (!els.mapScroll) return Math.min(920, window.innerWidth);
+    const styles = window.getComputedStyle(els.mapScroll);
+    const paddingX = (parseFloat(styles.paddingLeft) || 0) + (parseFloat(styles.paddingRight) || 0);
+    const available = Math.max(280, els.mapScroll.clientWidth - paddingX);
+    return Math.min(920, available);
+  }
+
+  function applyMapZoom() {
+    if (!els.mapStage) return;
+    const width = Math.round(getBaseMapWidth() * state.mapZoom);
+    els.mapStage.style.width = `${width}px`;
+    updateZoomUI();
+  }
+
+  function setMapZoom(nextZoom, anchor) {
+    if (!els.mapScroll) return;
+    const previousZoom = state.mapZoom || 1;
+    const next = clamp(nextZoom, ZOOM_MIN, ZOOM_MAX);
+    const anchorX = anchor?.x ?? els.mapScroll.clientWidth / 2;
+    const anchorY = anchor?.y ?? els.mapScroll.clientHeight / 2;
+    const logicalX = (els.mapScroll.scrollLeft + anchorX) / previousZoom;
+    const logicalY = (els.mapScroll.scrollTop + anchorY) / previousZoom;
+    state.mapZoom = next;
+    applyMapZoom();
+    els.mapScroll.scrollLeft = Math.max(0, logicalX * state.mapZoom - anchorX);
+    els.mapScroll.scrollTop = Math.max(0, logicalY * state.mapZoom - anchorY);
+  }
+
+  function updateZoomUI() {
+    if (els.zoomLevel) els.zoomLevel.textContent = `${Math.round((state.mapZoom || 1) * 100)}%`;
+    if (els.zoomOutBtn) els.zoomOutBtn.disabled = state.mapZoom <= ZOOM_MIN + 0.001;
+    if (els.zoomInBtn) els.zoomInBtn.disabled = state.mapZoom >= ZOOM_MAX - 0.001;
+  }
+
+  function bindMapZoomGestures() {
+    if (!els.mapScroll) return;
+    els.mapScroll.addEventListener('touchstart', event => {
+      if (event.touches.length !== 2) return;
+      pinchState = {
+        distance: getTouchDistance(event.touches),
+        zoom: state.mapZoom,
+        center: getTouchCenterInElement(event.touches, els.mapScroll)
+      };
+    }, { passive: true });
+
+    els.mapScroll.addEventListener('touchmove', event => {
+      if (!pinchState || event.touches.length !== 2) return;
+      event.preventDefault();
+      const distance = getTouchDistance(event.touches);
+      const center = getTouchCenterInElement(event.touches, els.mapScroll);
+      setMapZoom(pinchState.zoom * (distance / pinchState.distance), center);
+    }, { passive: false });
+
+    els.mapScroll.addEventListener('touchend', event => {
+      if (event.touches.length < 2) pinchState = null;
+    }, { passive: true });
+
+    els.mapScroll.addEventListener('wheel', event => {
+      if (!event.ctrlKey) return;
+      event.preventDefault();
+      const rect = els.mapScroll.getBoundingClientRect();
+      const direction = event.deltaY > 0 ? -1 : 1;
+      setMapZoom(state.mapZoom + direction * ZOOM_STEP, { x: event.clientX - rect.left, y: event.clientY - rect.top });
+    }, { passive: false });
+  }
+
+  function getTouchDistance(touches) {
+    const dx = touches[0].clientX - touches[1].clientX;
+    const dy = touches[0].clientY - touches[1].clientY;
+    return Math.hypot(dx, dy) || 1;
+  }
+
+  function getTouchCenterInElement(touches, element) {
+    const rect = element.getBoundingClientRect();
+    return {
+      x: ((touches[0].clientX + touches[1].clientX) / 2) - rect.left,
+      y: ((touches[0].clientY + touches[1].clientY) / 2) - rect.top
+    };
   }
 
   function renderOverlay() {
@@ -299,8 +396,8 @@
     return isIOS || isSafari;
   }
 
-  function openModal(dataUrl) { els.exportPreview.src = dataUrl; els.openImageLink.href = dataUrl; els.modal.hidden = false; }
-  function closeModal() { els.modal.hidden = true; els.exportPreview.removeAttribute('src'); els.openImageLink.removeAttribute('href'); }
+  function openModal(dataUrl) { els.exportPreview.src = dataUrl; els.modal.hidden = false; }
+  function closeModal() { els.modal.hidden = true; els.exportPreview.removeAttribute('src'); }
 
   async function buildExportPng() {
     const logicalW = SEATMAP_DATA.width;
@@ -313,7 +410,7 @@
     ctx.scale(scale, scale);
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, logicalW, logicalH);
-    const image = await loadImage('assets/seatmap.svg?v=3.2.0');
+    const image = await loadImage('assets/seatmap.svg?v=3.3.0');
     ctx.drawImage(image, 0, 0, logicalW, SEATMAP_DATA.height);
     const item = itemById.get(state.selectedId);
     if (item) { drawSelectedMark(ctx, item); drawCanvasArrow(ctx, item); }
