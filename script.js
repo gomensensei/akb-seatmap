@@ -4,7 +4,7 @@
 
   const svgNS = 'http://www.w3.org/2000/svg';
   const SUPPORTED_LANGS = ['ja', 'zh', 'zh-Hans', 'ko', 'th', 'id', 'en'];
-  const state = { lang: 'ja', i18n: {}, selectedId: null, performanceId: 'reset', eventDate: '', displayName: '', mapZoom: 1 };
+  const state = { lang: 'ja', i18n: {}, selectedId: null, performanceId: 'reset', eventDate: '', displayName: '', entryNumber: '', tourRound: '', mapZoom: 1 };
   const els = {
     html: document.documentElement,
     overlay: document.getElementById('seatOverlay'),
@@ -15,6 +15,8 @@
     eventDateInput: document.getElementById('eventDateInput'),
     langSelect: document.getElementById('langSelect'),
     nameInput: document.getElementById('nameInput'),
+    numberInput: document.getElementById('numberInput'),
+    tourSelect: document.getElementById('tourSelect'),
     downloadBtn: document.getElementById('downloadBtn'),
     clearBtn: document.getElementById('clearBtn'),
     copyLinkBtn: document.getElementById('copyLinkBtn'),
@@ -52,6 +54,7 @@
     state.i18n = await loadI18n();
     readHash();
     buildPerformanceOptions();
+    buildTourOptions();
     renderOverlay();
     bindEvents();
     bindMapZoomGestures();
@@ -93,12 +96,16 @@
     const hashShow = params.get('show');
     const hashSeat = params.get('seat');
     const hashName = params.get('name');
+    const hashNumber = params.get('number');
+    const hashTour = params.get('tour');
     const hashEventDate = params.get('eventDate');
     if (hashLang && SUPPORTED_LANGS.includes(hashLang)) state.lang = hashLang;
     if (hashShow && SEATMAP_DATA.performances.some(p => p.id === hashShow)) state.performanceId = hashShow;
     if (hashSeat && itemById.has(hashSeat)) state.selectedId = hashSeat;
     if (hashEventDate) state.eventDate = decodeURIComponent(hashEventDate).slice(0, 40);
     if (hashName) state.displayName = decodeURIComponent(hashName).slice(0, 28);
+    if (hashNumber) state.entryNumber = decodeURIComponent(hashNumber).slice(0, 24);
+    if (hashTour && /^([1-9]|1[0-9]|2[0-5])$/.test(hashTour)) state.tourRound = hashTour;
   }
 
   function syncHash() {
@@ -108,6 +115,8 @@
     if (state.selectedId) params.set('seat', state.selectedId);
     if (state.eventDate) params.set('eventDate', state.eventDate);
     if (state.displayName) params.set('name', state.displayName);
+    if (state.entryNumber) params.set('number', state.entryNumber);
+    if (state.tourRound) params.set('tour', state.tourRound);
     history.replaceState(null, '', `#${params.toString()}`);
   }
 
@@ -119,6 +128,23 @@
       option.textContent = performance.label;
       els.performanceSelect.appendChild(option);
     });
+  }
+
+  function buildTourOptions() {
+    if (!els.tourSelect) return;
+    const currentValue = state.tourRound;
+    els.tourSelect.innerHTML = '';
+    const emptyOption = document.createElement('option');
+    emptyOption.value = '';
+    emptyOption.textContent = t('tourRoundPlaceholder');
+    els.tourSelect.appendChild(emptyOption);
+    for (let i = 1; i <= 25; i += 1) {
+      const option = document.createElement('option');
+      option.value = String(i);
+      option.textContent = formatTourRound(i);
+      els.tourSelect.appendChild(option);
+    }
+    els.tourSelect.value = currentValue || '';
   }
 
   function bindEvents() {
@@ -133,6 +159,8 @@
     });
     els.eventDateInput.addEventListener('input', () => { state.eventDate = els.eventDateInput.value.trim().slice(0, 40); syncHash(); });
     els.nameInput.addEventListener('input', () => { state.displayName = els.nameInput.value.trim().slice(0, 28); syncHash(); });
+    if (els.numberInput) els.numberInput.addEventListener('input', () => { state.entryNumber = els.numberInput.value.trim().slice(0, 24); syncHash(); });
+    if (els.tourSelect) els.tourSelect.addEventListener('change', () => { state.tourRound = els.tourSelect.value; syncHash(); });
     els.downloadBtn.addEventListener('click', exportImage);
     els.clearBtn.addEventListener('click', clearSelection);
     els.copyLinkBtn.addEventListener('click', copyShareLink);
@@ -151,6 +179,7 @@
     document.querySelectorAll('[data-i18n]').forEach(node => { node.textContent = t(node.dataset.i18n); });
     document.querySelectorAll('[data-i18n-placeholder]').forEach(node => { node.placeholder = t(node.dataset.i18nPlaceholder); });
     document.querySelectorAll('[data-i18n-aria-label]').forEach(node => { node.setAttribute('aria-label', t(node.dataset.i18nAriaLabel)); });
+    buildTourOptions();
   }
 
   function resetMapView(withToast) {
@@ -336,6 +365,8 @@
     els.performanceSelect.value = state.performanceId;
     els.langSelect.value = state.lang;
     els.nameInput.value = state.displayName;
+    if (els.numberInput) els.numberInput.value = state.entryNumber;
+    if (els.tourSelect) els.tourSelect.value = state.tourRound || '';
     els.eventDateInput.value = state.eventDate;
     if (!item) {
       els.selectedPill.textContent = t('noSelection');
@@ -423,7 +454,7 @@
     ctx.scale(scale, scale);
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, logicalW, logicalH);
-    const image = await loadImage('assets/seatmap.svg?v=3.3.0');
+    const image = await loadImage('assets/seatmap.svg?v=3.5.0');
     ctx.drawImage(image, 0, 0, logicalW, SEATMAP_DATA.height);
     const item = itemById.get(state.selectedId);
     if (item) { drawSelectedMark(ctx, item); drawCanvasArrow(ctx, item); }
@@ -498,9 +529,11 @@
     const seatLabel = item ? getLocalizedSeatLabel(item) : t('noSelection');
     const eventDate = formatEventDateForDisplay(state.eventDate);
     const panelX = 500;
-    const panelY = 518;
     const panelW = 238;
-    const panelH = state.displayName ? 104 : 88;
+    const hasTicketMeta = Boolean(state.entryNumber || state.tourRound);
+    const hasName = Boolean(state.displayName);
+    const panelH = 88 + (hasTicketMeta ? 16 : 0) + (hasName ? 16 : 0);
+    const panelY = Math.max(482, 632 - panelH);
     const accent = '#ff007f';
 
     ctx.save();
@@ -518,14 +551,25 @@
     roundRect(ctx, panelX + 12, panelY + 12, 5, panelH - 24, 3);
     ctx.fill();
 
+    let lineY = panelY + 27;
     const lines = [
-      { text: t('exportTitle'), font: '900 18px "Noto Sans JP", sans-serif', color: '#1b2330', x: panelX + 25, y: panelY + 27 },
-      { text: `${t('performanceLabel')}：${performance.label}`, font: '800 11px "Noto Sans JP", sans-serif', color: accent, x: panelX + 25, y: panelY + 48 },
-      { text: `${t('eventDateLabel')}：${eventDate || '—'}`, font: '800 11px "Noto Sans JP", sans-serif', color: '#1b2330', x: panelX + 25, y: panelY + 65 },
-      { text: `${t('mySeat')}：${seatLabel}`, font: '900 13px "Noto Sans JP", sans-serif', color: '#1b2330', x: panelX + 25, y: panelY + 83 }
+      { text: t('exportTitle'), font: '900 18px "Noto Sans JP", sans-serif', color: '#1b2330', x: panelX + 25, y: lineY }
     ];
-    if (state.displayName) {
-      lines.push({ text: `${t('nameLabel')}：${state.displayName}`, font: '700 10px "Noto Sans JP", sans-serif', color: '#7F8C8D', x: panelX + 25, y: panelY + 99 });
+    lineY += 21;
+    lines.push({ text: `${t('performanceLabel')}：${performance.label}`, font: '800 11px "Noto Sans JP", sans-serif', color: accent, x: panelX + 25, y: lineY });
+    lineY += 17;
+    lines.push({ text: `${t('eventDateLabel')}：${eventDate || '—'}`, font: '800 11px "Noto Sans JP", sans-serif', color: '#1b2330', x: panelX + 25, y: lineY });
+    lineY += 17;
+    lines.push({ text: `${t('mySeat')}：${seatLabel}`, font: '900 13px "Noto Sans JP", sans-serif', color: '#1b2330', x: panelX + 25, y: lineY });
+    if (hasTicketMeta) {
+      const numberText = state.entryNumber ? `${t('entryNumberLabel')}：${state.entryNumber}` : '';
+      const tourText = state.tourRound ? `${t('tourRoundLabel')}：${formatTourRound(state.tourRound)}` : '';
+      lineY += 16;
+      lines.push({ text: [numberText, tourText].filter(Boolean).join(' / '), font: '700 10px "Noto Sans JP", sans-serif', color: '#1b2330', x: panelX + 25, y: lineY });
+    }
+    if (hasName) {
+      lineY += 16;
+      lines.push({ text: `${t('nameLabel')}：${state.displayName}`, font: '700 10px "Noto Sans JP", sans-serif', color: '#7F8C8D', x: panelX + 25, y: lineY });
     }
 
     ctx.textAlign = 'left';
@@ -536,6 +580,16 @@
       ctx.fillText(line.text, line.x, line.y, panelW - 38);
     });
     ctx.restore();
+  }
+
+  function formatTourRound(value) {
+    if (!value) return '';
+    const n = String(value);
+    if (state.lang === 'ko') return `${n}번째 순번`;
+    if (state.lang === 'th') return `รอบที่ ${n}`;
+    if (state.lang === 'id') return `Putaran ${n}`;
+    if (state.lang === 'en') return `Round ${n}`;
+    return `${n}巡目`;
   }
 
   function formatEventDateForDisplay(value) {

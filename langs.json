@@ -6,7 +6,7 @@
     "language": "言語",
     "performance": "公演名",
     "displayName": "表示名（任意）",
-    "displayNamePlaceholder": "例：秋元康",
+    "displayNamePlaceholder": "例：秋元康 (akimoto yasushi)",
     "currentSelection": "現在の選択",
     "noSelection": "まだ選択されていません",
     "selectHint": "座席または立見エリアをタップしてください。",
@@ -30,7 +30,13 @@
     "eventDateLabel": "イベント日時",
     "siteDisclaimer": "本サイトはファンである ゴメン先生 (gomensensei) が作成した非公式のものであり、AKB48運営とは一切関係ありません。各権利者に帰属します。",
     "zoomOut": "縮小",
-    "zoomIn": "拡大"
+    "zoomIn": "拡大",
+    "entryNumber": "番号",
+    "entryNumberLabel": "番号",
+    "entryNumberPlaceholder": "例：A001",
+    "tourRound": "巡目",
+    "tourRoundLabel": "巡目",
+    "tourRoundPlaceholder": "巡目を選択"
   },
   "zh": {
     "eyebrow": "AKB48 Theater Seat Memo",
@@ -39,7 +45,7 @@
     "language": "語言",
     "performance": "公演名",
     "displayName": "顯示名稱（可選）",
-    "displayNamePlaceholder": "例：秋元康",
+    "displayNamePlaceholder": "例：秋元康 (akimoto yasushi)",
     "currentSelection": "目前選擇",
     "noSelection": "尚未選擇位置",
     "selectHint": "請點選座位或立見區格仔。",
@@ -63,7 +69,13 @@
     "eventDateLabel": "活動日期及時間",
     "siteDisclaimer": "本網站由粉絲 ゴメン先生 (gomensensei) 製作，屬非官方網站，與 AKB48 營運方完全無關。相關權利均歸各權利持有人所有。",
     "zoomOut": "縮小地圖",
-    "zoomIn": "放大地圖"
+    "zoomIn": "放大地圖",
+    "entryNumber": "號碼",
+    "entryNumberLabel": "號碼",
+    "entryNumberPlaceholder": "例：A001",
+    "tourRound": "巡目",
+    "tourRoundLabel": "巡目",
+    "tourRoundPlaceholder": "選擇巡目"
   },
   "zh-Hans": {
     "eyebrow": "AKB48 Theater Seat Memo",
@@ -72,7 +84,7 @@
     "language": "语言",
     "performance": "公演名",
     "displayName": "显示名称（可选）",
-    "displayNamePlaceholder": "例：秋元康",
+    "displayNamePlaceholder": "例：秋元康 (akimoto yasushi)",
     "currentSelection": "当前选择",
     "noSelection": "尚未选择位置",
     "selectHint": "请点击座位或站席区域。",
@@ -96,7 +108,13 @@
     "eventDateLabel": "活动日期及时间",
     "siteDisclaimer": "本网站由粉丝 ゴメン先生 (gomensensei) 制作，属于非官方网站，与 AKB48 运营方完全无关。相关权利均归各权利持有人所有。",
     "zoomOut": "缩小地图",
-    "zoomIn": "放大地图"
+    "zoomIn": "放大地图",
+    "entryNumber": "号码",
+    "entryNumberLabel": "号码",
+    "entryNumberPlaceholder": "例：A001",
+    "tourRound": "巡目",
+    "tourRoundLabel": "巡目",
+    "tourRoundPlaceholder": "选择巡目"
   },
   "ko": {
     "eyebrow": "AKB48 Theater Seat Memo",
@@ -105,7 +123,7 @@
     "language": "언어",
     "performance": "공연명",
     "displayName": "표시 이름(선택)",
-    "displayNamePlaceholder": "예: Akimoto Yasushi",
+    "displayNamePlaceholder": "예: 秋元康 (akimoto yasushi)",
     "currentSelection": "현재 선택",
     "noSelection": "아직 선택되지 않았습니다",
     "selectHint": "좌석 또는 스탠딩 구역을 탭하세요.",
@@ -129,7 +147,13 @@
     "eventDateLabel": "이벤트 일시",
     "siteDisclaimer": "이 사이트는 팬인 ゴメン先生 (gomensensei)가 제작한 비공식 사이트이며 AKB48 운영 측과는 전혀 관련이 없습니다. 모든 권리는 각 권리자에게 있습니다.",
     "zoomOut": "지도 축소",
-    "zoomIn": "지도 확대"
+    "zoomIn": "지도 확대",
+    "entryNumber": "번호",
+    "entryNumberLabel": "번호",
+    "entryNumberPlaceholder": "예: A001",
+    "tourRound": "순번",
+    "tourRoundLabel": "순번",
+    "tourRoundPlaceholder": "순번 선택"
   },
   "th": {
     "eyebrow": "AKB48 Theater Seat Memo",
@@ -138,7 +162,7 @@
     "language": "ภาษา",
     "performance": "ชื่อการแสดง",
     "displayName": "ชื่อที่แสดง (ไม่บังคับ)",
-    "displayNamePlaceholder": "เช่น: Akimoto Yasushi",
+    "displayNamePlaceholder": "เช่น 秋元康 (akimoto yasushi)",
     "currentSelection": "ตำแหน่งที่เลือก",
     "noSelection": "ยังไม่ได้เลือกตำแหน่ง",
     "selectHint": "แตะที่นั่งหรือช่องโซนยืน",
@@ -162,7 +186,13 @@
     "eventDateLabel": "วันและเวลาอีเวนต์",
     "siteDisclaimer": "เว็บไซต์นี้เป็นเว็บไซต์ไม่เป็นทางการที่สร้างโดยแฟนคลับ ゴメン先生 (gomensensei) และไม่มีความเกี่ยวข้องใด ๆ กับฝ่ายบริหาร AKB48 สิทธิ์ทั้งหมดเป็นของเจ้าของสิทธิ์แต่ละราย",
     "zoomOut": "ย่อแผนผัง",
-    "zoomIn": "ขยายแผนผัง"
+    "zoomIn": "ขยายแผนผัง",
+    "entryNumber": "หมายเลข",
+    "entryNumberLabel": "หมายเลข",
+    "entryNumberPlaceholder": "เช่น A001",
+    "tourRound": "รอบ",
+    "tourRoundLabel": "รอบ",
+    "tourRoundPlaceholder": "เลือกรอบ"
   },
   "id": {
     "eyebrow": "AKB48 Theater Seat Memo",
@@ -171,7 +201,7 @@
     "language": "Bahasa",
     "performance": "Nama pertunjukan",
     "displayName": "Nama tampilan (opsional)",
-    "displayNamePlaceholder": "contoh: Akimoto Yasushi",
+    "displayNamePlaceholder": "Contoh: 秋元康 (akimoto yasushi)",
     "currentSelection": "Pilihan saat ini",
     "noSelection": "Belum ada posisi yang dipilih",
     "selectHint": "Ketuk kursi atau slot area berdiri.",
@@ -195,7 +225,13 @@
     "eventDateLabel": "Tanggal & waktu acara",
     "siteDisclaimer": "Situs ini adalah situs tidak resmi buatan penggemar, dibuat oleh Gomensensei (gomensensei), dan tidak berafiliasi dengan manajemen AKB48. Semua hak milik pemegang hak masing-masing.",
     "zoomOut": "Perkecil peta",
-    "zoomIn": "Perbesar peta"
+    "zoomIn": "Perbesar peta",
+    "entryNumber": "Nomor",
+    "entryNumberLabel": "Nomor",
+    "entryNumberPlaceholder": "Contoh: A001",
+    "tourRound": "Giliran",
+    "tourRoundLabel": "Giliran",
+    "tourRoundPlaceholder": "Pilih giliran"
   },
   "en": {
     "eyebrow": "AKB48 Theater Seat Memo",
@@ -204,7 +240,7 @@
     "language": "Language",
     "performance": "Performance",
     "displayName": "Display name (optional)",
-    "displayNamePlaceholder": "e.g. Akimoto Yasushi",
+    "displayNamePlaceholder": "e.g. 秋元康 (akimoto yasushi)",
     "currentSelection": "Current selection",
     "noSelection": "No position selected yet",
     "selectHint": "Tap a seat or a standing-area slot.",
@@ -228,6 +264,12 @@
     "eventDateLabel": "Event date & time",
     "siteDisclaimer": "This site is an unofficial fan-made site created by Gomensensei (gomensensei) and is not affiliated with AKB48 management. All rights belong to their respective rights holders.",
     "zoomOut": "Zoom out",
-    "zoomIn": "Zoom in"
+    "zoomIn": "Zoom in",
+    "entryNumber": "Number",
+    "entryNumberLabel": "Number",
+    "entryNumberPlaceholder": "e.g. A001",
+    "tourRound": "Entry Round",
+    "tourRoundLabel": "Round",
+    "tourRoundPlaceholder": "Select round"
   }
 }

@@ -1,3 +1,3 @@
-# AKB48 Seat Memo v3.4.0
+# AKB48 Seat Memo v3.5.0
 
-Low-tilt controls and expanded language support.
+Added free-input number and 1–25 entry-round selector.
