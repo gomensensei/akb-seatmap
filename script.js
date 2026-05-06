@@ -530,11 +530,19 @@
     const eventDate = formatEventDateForDisplay(state.eventDate);
     const panelX = 500;
     const panelW = 238;
-    const hasTicketMeta = Boolean(state.entryNumber || state.tourRound);
-    const hasName = Boolean(state.displayName);
-    const panelH = 88 + (hasTicketMeta ? 16 : 0) + (hasName ? 16 : 0);
-    const panelY = Math.max(482, 632 - panelH);
     const accent = '#ff007f';
+
+    const infoLines = [
+      { text: performance.label, font: '800 11px "Noto Sans JP", sans-serif', color: accent, gap: 17 },
+      ...(eventDate ? [{ text: eventDate, font: '800 11px "Noto Sans JP", sans-serif', color: '#1b2330', gap: 17 }] : []),
+      { text: seatLabel, font: '900 13px "Noto Sans JP", sans-serif', color: '#1b2330', gap: 17 },
+      ...(state.entryNumber ? [{ text: state.entryNumber, font: '700 10px "Noto Sans JP", sans-serif', color: '#1b2330', gap: 15 }] : []),
+      ...(state.tourRound ? [{ text: formatTourRound(state.tourRound), font: '700 10px "Noto Sans JP", sans-serif', color: '#1b2330', gap: 15 }] : []),
+      ...(state.displayName ? [{ text: state.displayName, font: '700 10px "Noto Sans JP", sans-serif', color: '#7F8C8D', gap: 15 }] : [])
+    ];
+
+    const panelH = 48 + infoLines.reduce((sum, line) => sum + line.gap, 0);
+    const panelY = Math.max(482, 632 - panelH);
 
     ctx.save();
     ctx.shadowColor = 'rgba(27, 35, 48, 0.16)';
@@ -551,26 +559,15 @@
     roundRect(ctx, panelX + 12, panelY + 12, 5, panelH - 24, 3);
     ctx.fill();
 
+    const lines = [];
     let lineY = panelY + 27;
-    const lines = [
-      { text: t('exportTitle'), font: '900 18px "Noto Sans JP", sans-serif', color: '#1b2330', x: panelX + 25, y: lineY }
-    ];
+    lines.push({ text: t('exportTitle'), font: '900 16px "Noto Sans JP", sans-serif', color: '#1b2330', x: panelX + 25, y: lineY });
     lineY += 21;
-    lines.push({ text: `${t('performanceLabel')}：${performance.label}`, font: '800 11px "Noto Sans JP", sans-serif', color: accent, x: panelX + 25, y: lineY });
-    lineY += 17;
-    lines.push({ text: `${t('eventDateLabel')}：${eventDate || '—'}`, font: '800 11px "Noto Sans JP", sans-serif', color: '#1b2330', x: panelX + 25, y: lineY });
-    lineY += 17;
-    lines.push({ text: `${t('mySeat')}：${seatLabel}`, font: '900 13px "Noto Sans JP", sans-serif', color: '#1b2330', x: panelX + 25, y: lineY });
-    if (hasTicketMeta) {
-      const numberText = state.entryNumber ? `${t('entryNumberLabel')}：${state.entryNumber}` : '';
-      const tourText = state.tourRound ? `${t('tourRoundLabel')}：${formatTourRound(state.tourRound)}` : '';
-      lineY += 16;
-      lines.push({ text: [numberText, tourText].filter(Boolean).join(' / '), font: '700 10px "Noto Sans JP", sans-serif', color: '#1b2330', x: panelX + 25, y: lineY });
-    }
-    if (hasName) {
-      lineY += 16;
-      lines.push({ text: `${t('nameLabel')}：${state.displayName}`, font: '700 10px "Noto Sans JP", sans-serif', color: '#7F8C8D', x: panelX + 25, y: lineY });
-    }
+
+    infoLines.forEach(line => {
+      lines.push({ text: line.text, font: line.font, color: line.color, x: panelX + 25, y: lineY });
+      lineY += line.gap;
+    });
 
     ctx.textAlign = 'left';
     ctx.textBaseline = 'alphabetic';
