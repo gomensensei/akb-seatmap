@@ -273,3 +273,176 @@ button, select, input, textarea {
     background-attachment: scroll !important;
   }
 }
+
+
+/* v3.7.0 mobile comfort pass */
+@media (max-width: 560px) {
+  .app-shell {
+    padding: 8px 8px 28px;
+  }
+
+  .hero {
+    gap: 8px;
+    margin-bottom: 10px;
+    padding: 12px;
+    border-radius: 18px;
+  }
+
+  .eyebrow {
+    margin-bottom: 2px;
+    font-size: .68rem;
+    line-height: 1.2;
+    letter-spacing: .08em;
+  }
+
+  .hero h1 {
+    font-size: clamp(1.28rem, 6.2vw, 1.72rem);
+    line-height: 1.12;
+    letter-spacing: 0;
+  }
+
+  .lead {
+    display: -webkit-box;
+    margin-top: 5px;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    font-size: .82rem;
+    line-height: 1.45;
+  }
+
+  .hero-actions {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+  }
+
+  .hero-actions .field-label {
+    white-space: normal;
+  }
+
+  .lang-label {
+    font-size: .7rem;
+    line-height: 1.2;
+  }
+
+  .lang-input {
+    min-height: 38px;
+    border-radius: 13px;
+    padding-inline: 10px;
+  }
+
+  .workspace {
+    gap: 10px;
+  }
+
+  .map-card,
+  .control-card {
+    max-width: calc(100vw - 16px);
+    border-radius: 18px;
+  }
+
+  .map-card {
+    padding: 10px;
+  }
+
+  .map-toolbar {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .selected-pill {
+    display: -webkit-box;
+    max-height: 3.1em;
+    padding: 8px 10px;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    border-radius: 16px;
+    font-size: .82rem;
+    line-height: 1.32;
+  }
+
+  .zoom-control {
+    width: min(100%, 166px);
+  }
+
+  .map-scroll {
+    padding: 5px;
+    border-radius: 16px;
+  }
+
+  .control-card {
+    padding: 12px;
+    gap: 12px;
+  }
+
+  .control-section {
+    gap: 5px;
+  }
+
+  .field-label {
+    font-size: .76rem;
+  }
+
+  .summary-box {
+    padding: 11px;
+    border-radius: 16px;
+  }
+
+  .summary-label {
+    font-size: .68rem;
+  }
+
+  .summary-main {
+    font-size: 1.02rem;
+  }
+
+  .summary-sub {
+    margin-top: 6px;
+    font-size: .82rem;
+    line-height: 1.45;
+  }
+
+  .button-row {
+    gap: 8px;
+  }
+
+  .primary-button,
+  .secondary-button,
+  .link-button {
+    min-height: 44px;
+    border-radius: 14px;
+    padding-inline: 12px;
+  }
+
+  .notes {
+    padding: 10px 11px;
+    border-radius: 14px;
+    font-size: .78rem;
+    line-height: 1.5;
+  }
+
+  .site-footer {
+    max-width: calc(100vw - 16px);
+    margin-top: 10px;
+    border-radius: 16px;
+  }
+}
+
+@media (max-width: 380px) {
+  .hero {
+    padding: 10px;
+  }
+
+  .hero h1 {
+    font-size: clamp(1.18rem, 6vw, 1.45rem);
+  }
+
+  .lead {
+    -webkit-line-clamp: 1;
+  }
+}
