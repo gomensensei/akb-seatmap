@@ -7,9 +7,9 @@
   const SUPABASE_URL = 'https://jappifgnjssqxvjodgiv.supabase.co';
   const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_oXfJyHkRtn1BHBw-9ictBQ__01qBCZg';
   const CLOUD_TABLE = 'seat_memo_records';
-  const LOCAL_MEMO_KEY = 'tool48SeatMemoLocalV1';
   const state = { lang: 'ja', i18n: {}, selectedId: null, performanceId: 'reset', eventDate: '', displayName: '', entryNumber: '', tourRound: '', mapZoom: 1 };
   const cloud = { client: null, user: null, records: [], selectedId: '', busy: false, ready: false };
+  const lotteryState = { entries: [], nextOrder: 1, selfRange: '' };
   const els = {
     html: document.documentElement,
     overlay: document.getElementById('seatOverlay'),
@@ -34,19 +34,35 @@
     modal: document.getElementById('exportModal'),
     modalCloseBtn: document.getElementById('modalCloseBtn'),
     exportPreview: document.getElementById('exportPreview'),
-    localSaveBtn: document.getElementById('localSaveBtn'),
-    localLoadBtn: document.getElementById('localLoadBtn'),
-    localSaveStatus: document.getElementById('localSaveStatus'),
     cloudSection: document.querySelector('.cloud-save-section'),
     cloudStatus: document.getElementById('cloudStatus'),
+    cloudMessage: document.getElementById('cloudMessage'),
+    cloudLoginForm: document.getElementById('cloudLoginForm'),
+    cloudNicknameInput: document.getElementById('cloudNicknameInput'),
     cloudEmailInput: document.getElementById('cloudEmailInput'),
-    cloudLoginBtn: document.getElementById('cloudLoginBtn'),
+    cloudPasswordInput: document.getElementById('cloudPasswordInput'),
+    cloudSignInBtn: document.getElementById('cloudSignInBtn'),
+    cloudSignUpBtn: document.getElementById('cloudSignUpBtn'),
+    cloudActions: document.getElementById('cloudActions'),
+    cloudUserLabel: document.getElementById('cloudUserLabel'),
     cloudLogoutBtn: document.getElementById('cloudLogoutBtn'),
-    cloudRecordsSelect: document.getElementById('cloudRecordsSelect'),
     cloudSaveBtn: document.getElementById('cloudSaveBtn'),
-    cloudLoadBtn: document.getElementById('cloudLoadBtn'),
-    cloudUpdateBtn: document.getElementById('cloudUpdateBtn'),
-    cloudDeleteBtn: document.getElementById('cloudDeleteBtn'),
+    tabButtons: Array.from(document.querySelectorAll('.tab-button')),
+    tabPanels: Array.from(document.querySelectorAll('.tab-panel')),
+    refreshCloudRecordsBtn: document.getElementById('refreshCloudRecordsBtn'),
+    cloudRecordsTable: document.getElementById('cloudRecordsTable'),
+    cloudRecordsEmpty: document.getElementById('cloudRecordsEmpty'),
+    lotteryPerformanceSelect: document.getElementById('lotteryPerformanceSelect'),
+    lotteryDateInput: document.getElementById('lotteryDateInput'),
+    lotteryLeftColumn: document.getElementById('lotteryLeftColumn'),
+    lotteryRightColumn: document.getElementById('lotteryRightColumn'),
+    lotteryPublicConsent: document.getElementById('lotteryPublicConsent'),
+    saveLotteryCloudBtn: document.getElementById('saveLotteryCloudBtn'),
+    downloadLotteryBtn: document.getElementById('downloadLotteryBtn'),
+    clearLotteryBtn: document.getElementById('clearLotteryBtn'),
+    refreshDistributionBtn: document.getElementById('refreshDistributionBtn'),
+    distributionCanvas: document.getElementById('distributionCanvas'),
+    distributionEmpty: document.getElementById('distributionEmpty'),
     toast: document.getElementById('toast')
   };
   const itemById = new Map(SEATMAP_DATA.items.map(item => [item.id, item]));
@@ -73,6 +89,8 @@
     readHash();
     buildPerformanceOptions();
     buildTourOptions();
+    buildLotteryPerformanceOptions();
+    renderLotteryRanges();
     renderOverlay();
     bindEvents();
     bindMapZoomGestures();
@@ -149,6 +167,19 @@
     });
   }
 
+  function buildLotteryPerformanceOptions() {
+    if (!els.lotteryPerformanceSelect) return;
+    els.lotteryPerformanceSelect.innerHTML = '';
+    SEATMAP_DATA.performances.forEach(performance => {
+      const option = document.createElement('option');
+      option.value = performance.id;
+      option.textContent = performance.label;
+      els.lotteryPerformanceSelect.appendChild(option);
+    });
+    els.lotteryPerformanceSelect.value = state.performanceId;
+    if (els.lotteryDateInput) els.lotteryDateInput.value = state.eventDate;
+  }
+
   function buildTourOptions() {
     if (!els.tourSelect) return;
     const currentValue = state.tourRound;
@@ -183,15 +214,18 @@
     els.downloadBtn.addEventListener('click', exportImage);
     els.clearBtn.addEventListener('click', clearSelection);
     els.copyLinkBtn.addEventListener('click', copyShareLink);
-    els.localSaveBtn?.addEventListener('click', saveLocalMemo);
-    els.localLoadBtn?.addEventListener('click', loadLocalMemo);
-    els.cloudLoginBtn?.addEventListener('click', loginCloudAccount);
+    els.tabButtons.forEach(button => button.addEventListener('click', () => switchTab(button.dataset.tab)));
+    els.cloudLoginForm?.addEventListener('submit', loginCloudAccount);
     els.cloudLogoutBtn?.addEventListener('click', logoutCloudAccount);
     els.cloudSaveBtn?.addEventListener('click', saveCloudMemo);
-    els.cloudLoadBtn?.addEventListener('click', loadCloudSelection);
-    els.cloudUpdateBtn?.addEventListener('click', updateCloudMemo);
-    els.cloudDeleteBtn?.addEventListener('click', deleteCloudMemo);
-    els.cloudRecordsSelect?.addEventListener('change', () => { cloud.selectedId = els.cloudRecordsSelect.value; updatePersistenceUI(); });
+    els.refreshCloudRecordsBtn?.addEventListener('click', () => loadCloudRecords());
+    els.cloudRecordsTable?.addEventListener('click', handleCloudRecordsTableClick);
+    els.lotteryPerformanceSelect?.addEventListener('change', () => {});
+    els.lotteryDateInput?.addEventListener('input', () => {});
+    els.saveLotteryCloudBtn?.addEventListener('click', saveLotteryCloudRecord);
+    els.downloadLotteryBtn?.addEventListener('click', downloadLotteryImage);
+    els.clearLotteryBtn?.addEventListener('click', clearLotteryRecord);
+    els.refreshDistributionBtn?.addEventListener('click', () => renderDistributionChart());
     if (els.zoomOutBtn) els.zoomOutBtn.addEventListener('click', () => setMapZoom(state.mapZoom - ZOOM_STEP));
     if (els.zoomInBtn) els.zoomInBtn.addEventListener('click', () => setMapZoom(state.mapZoom + ZOOM_STEP));
     window.addEventListener('resize', () => {
@@ -208,6 +242,10 @@
     document.querySelectorAll('[data-i18n-placeholder]').forEach(node => { node.placeholder = t(node.dataset.i18nPlaceholder); });
     document.querySelectorAll('[data-i18n-aria-label]').forEach(node => { node.setAttribute('aria-label', t(node.dataset.i18nAriaLabel)); });
     buildTourOptions();
+    buildLotteryPerformanceOptions();
+    renderLotteryRanges();
+    renderCloudRecordsTable();
+    renderDistributionChart();
     updatePersistenceUI();
   }
 
@@ -436,8 +474,6 @@
   function getCurrentPerformance() { return SEATMAP_DATA.performances.find(p => p.id === state.performanceId) || SEATMAP_DATA.performances[0]; }
 
   function initPersistence() {
-    refreshLocalSaveStatus();
-    updateCloudRecordOptions();
     updatePersistenceUI();
     initCloudSave();
   }
@@ -497,45 +533,6 @@
     resetMapView(false);
   }
 
-  function saveLocalMemo() {
-    try {
-      localStorage.setItem(LOCAL_MEMO_KEY, JSON.stringify(buildMemoPayload()));
-      refreshLocalSaveStatus();
-      showToast(t('localSaved'));
-    } catch (error) {
-      console.warn(error);
-      showToast(t('localSaveFailed'));
-    }
-  }
-
-  function loadLocalMemo() {
-    try {
-      const raw = localStorage.getItem(LOCAL_MEMO_KEY);
-      if (!raw) { showToast(t('localLoadMissing')); return; }
-      applyMemoPayload(JSON.parse(raw));
-      refreshLocalSaveStatus();
-      showToast(t('localLoaded'));
-    } catch (error) {
-      console.warn(error);
-      showToast(t('localLoadFailed'));
-    }
-  }
-
-  function refreshLocalSaveStatus() {
-    if (!els.localSaveStatus) return;
-    try {
-      const raw = localStorage.getItem(LOCAL_MEMO_KEY);
-      if (!raw) {
-        els.localSaveStatus.textContent = t('localSaveReady');
-        return;
-      }
-      const payload = JSON.parse(raw);
-      els.localSaveStatus.textContent = formatMessage('localSavedAt', { time: formatSavedAt(payload.savedAt) });
-    } catch {
-      els.localSaveStatus.textContent = t('localSaveReady');
-    }
-  }
-
   async function initCloudSave() {
     if (!els.cloudStatus) return;
     if (!window.supabase?.createClient) {
@@ -554,7 +551,8 @@
       if (!cloud.user) {
         cloud.records = [];
         cloud.selectedId = '';
-        updateCloudRecordOptions();
+        renderCloudRecordsTable();
+        renderDistributionChart();
         updatePersistenceUI();
         return;
       }
@@ -564,19 +562,27 @@
     updatePersistenceUI();
   }
 
-  async function loginCloudAccount() {
+  async function loginCloudAccount(event) {
+    event.preventDefault();
     if (!cloud.client) { showToast(t('cloudUnavailable')); return; }
+    const submitter = event.submitter;
+    const action = submitter?.dataset.authAction === 'signup' ? 'signup' : 'signin';
+    const nickname = els.cloudNicknameInput?.value.trim() || '';
     const email = els.cloudEmailInput?.value.trim();
-    if (!email) { showToast(t('cloudLoginEmailRequired')); return; }
+    const password = els.cloudPasswordInput?.value || '';
+    if (!email || !password) { setCloudMessage(t('cloudMissingEmailPassword')); showToast(t('cloudMissingEmailPassword')); return; }
+    if (action === 'signup' && !nickname) { setCloudMessage(t('cloudMissingSignup')); showToast(t('cloudMissingSignup')); return; }
     setCloudBusy(true);
-    const { error } = await cloud.client.auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo: window.location.href }
-    });
+    setCloudMessage(action === 'signup' ? t('cloudSigningUp') : t('cloudSigningIn'));
+    const result = action === 'signup'
+      ? await cloud.client.auth.signUp({ email, password, options: { data: { display_name: nickname }, emailRedirectTo: window.location.href } })
+      : await cloud.client.auth.signInWithPassword({ email, password });
     setCloudBusy(false);
-    if (error) { console.warn(error); showToast(t('cloudLoginFailed')); return; }
-    updatePersistenceUI('cloudLoginSent');
-    showToast(t('cloudLoginSent'));
+    if (result.error) { console.warn(result.error); setCloudMessage(result.error.message || t('cloudActionFailed')); showToast(t('cloudActionFailed')); return; }
+    cloud.user = result.data.session?.user || cloud.user;
+    setCloudMessage(action === 'signup' && !result.data.session ? t('cloudSignupNeedsConfirm') : t('cloudSignedIn'));
+    updatePersistenceUI();
+    if (cloud.user) await loadCloudRecords({ silent: true });
   }
 
   async function logoutCloudAccount() {
@@ -588,7 +594,8 @@
     cloud.user = null;
     cloud.records = [];
     cloud.selectedId = '';
-    updateCloudRecordOptions();
+    renderCloudRecordsTable();
+    renderDistributionChart();
     updatePersistenceUI();
     showToast(t('cloudLoggedOut'));
   }
@@ -605,16 +612,13 @@
     showToast(t('cloudSaveSuccess'));
   }
 
-  async function loadCloudSelection() {
+  async function loadCloudSelection(recordId) {
     if (!requireCloudLogin()) return;
-    if (!cloud.selectedId) {
-      await loadCloudRecords();
-      return;
-    }
-    const record = cloud.records.find(item => item.id === cloud.selectedId);
+    const record = cloud.records.find(item => item.id === recordId);
     if (!record) { await loadCloudRecords(); return; }
     try {
       applyMemoPayload(record.payload || {});
+      switchTab('seat');
       showToast(t('cloudLoadSuccess'));
     } catch (error) {
       console.warn(error);
@@ -622,24 +626,24 @@
     }
   }
 
-  async function updateCloudMemo() {
+  async function updateCloudMemo(recordId) {
     if (!requireCloudLogin()) return;
-    if (!cloud.selectedId) { showToast(t('cloudNoRecordSelected')); return; }
+    cloud.selectedId = recordId;
     setCloudBusy(true);
     const row = buildCloudRow();
     row.updated_at = new Date().toISOString();
-    const result = await writeCloudRow('update', row, cloud.selectedId);
+    const result = await writeCloudRow('update', row, recordId);
     setCloudBusy(false);
     if (!result) return;
     await loadCloudRecords({ silent: true });
     showToast(t('cloudUpdateSuccess'));
   }
 
-  async function deleteCloudMemo() {
+  async function deleteCloudMemo(recordId) {
     if (!requireCloudLogin()) return;
-    if (!cloud.selectedId) { showToast(t('cloudNoRecordSelected')); return; }
+    if (!window.confirm(t('confirmDelete'))) return;
     setCloudBusy(true);
-    const { error } = await cloud.client.from(CLOUD_TABLE).delete().eq('id', cloud.selectedId);
+    const { error } = await cloud.client.from(CLOUD_TABLE).delete().eq('id', recordId);
     setCloudBusy(false);
     if (error) { console.warn(error); showToast(t('cloudActionFailed')); return; }
     cloud.selectedId = '';
@@ -652,7 +656,7 @@
     setCloudBusy(true);
     const { data, error } = await cloud.client
       .from(CLOUD_TABLE)
-      .select('id,event_date,performance_title,seat_label,payload,created_at,updated_at')
+      .select('id,event_date,performance_title,seat_label,payload,public_consent,public_status,created_at,updated_at')
       .eq('user_id', cloud.user.id)
       .order('updated_at', { ascending: false })
       .limit(50);
@@ -660,7 +664,8 @@
     if (error) { console.warn(error); if (!options.silent) showToast(t('cloudActionFailed')); return; }
     cloud.records = Array.isArray(data) ? data : [];
     if (cloud.selectedId && !cloud.records.some(record => record.id === cloud.selectedId)) cloud.selectedId = '';
-    updateCloudRecordOptions();
+    renderCloudRecordsTable();
+    renderDistributionChart();
     updatePersistenceUI(options.silent ? undefined : 'cloudRecordsLoaded');
     if (!options.silent) showToast(formatMessage('cloudRecordsLoaded', { count: cloud.records.length }));
   }
@@ -685,6 +690,31 @@
       payload: buildMemoPayload(),
       public_consent: false,
       public_status: 'private',
+      source: 'web'
+    };
+  }
+
+  function buildLotteryCloudRow() {
+    const performance = getLotteryPerformance();
+    const payload = buildLotteryPayload();
+    const selfEntry = lotteryState.entries.find(entry => entry.isSelf);
+    return {
+      user_id: cloud.user.id,
+      event_date: extractDateOnly(els.lotteryDateInput?.value),
+      performance_id: performance?.id || null,
+      performance_title: performance?.label || '',
+      seat_block: null,
+      seat_row: null,
+      seat_number: null,
+      seat_label: t('lotteryRecordType'),
+      lottery_order: selfEntry?.order || null,
+      entry_order: parseRangeStart(selfEntry?.range || ''),
+      view_rating: null,
+      view_note: t('lotteryRecordType'),
+      private_note: null,
+      payload,
+      public_consent: Boolean(els.lotteryPublicConsent?.checked),
+      public_status: els.lotteryPublicConsent?.checked ? 'pending' : 'private',
       source: 'web'
     };
   }
@@ -717,27 +747,8 @@
     return ok;
   }
 
-  function updateCloudRecordOptions() {
-    if (!els.cloudRecordsSelect) return;
-    els.cloudRecordsSelect.innerHTML = '';
-    const empty = document.createElement('option');
-    empty.value = '';
-    empty.textContent = cloud.records.length ? t('cloudSelectRecord') : t('cloudNoRecords');
-    els.cloudRecordsSelect.appendChild(empty);
-    cloud.records.forEach(record => {
-      const option = document.createElement('option');
-      option.value = record.id;
-      option.textContent = formatCloudRecordLabel(record);
-      els.cloudRecordsSelect.appendChild(option);
-    });
-    els.cloudRecordsSelect.value = cloud.selectedId || '';
-  }
-
   function updatePersistenceUI(statusKey) {
-    refreshLocalSaveStatus();
-    updateCloudRecordOptions();
     const loggedIn = !!cloud.user;
-    const hasRecord = !!cloud.selectedId;
     if (els.cloudSection) els.cloudSection.classList.toggle('is-local-only', !loggedIn);
     if (els.cloudStatus) {
       if (statusKey) els.cloudStatus.textContent = formatMessage(statusKey, { count: cloud.records.length });
@@ -745,25 +756,280 @@
       else if (loggedIn) els.cloudStatus.textContent = formatMessage('cloudLoggedIn', { email: cloud.user.email || t('cloudAccount') });
       else els.cloudStatus.textContent = t('cloudLocalOnly');
     }
-    if (els.cloudEmailInput) els.cloudEmailInput.disabled = cloud.busy || loggedIn || !cloud.ready;
-    if (els.cloudLoginBtn) {
-      els.cloudLoginBtn.hidden = loggedIn;
-      els.cloudLoginBtn.disabled = cloud.busy || !cloud.ready;
+    if (els.cloudLoginForm) {
+      els.cloudLoginForm.hidden = loggedIn || !cloud.ready;
+      els.cloudLoginForm.setAttribute('aria-hidden', loggedIn || !cloud.ready ? 'true' : 'false');
     }
+    [els.cloudNicknameInput, els.cloudEmailInput, els.cloudPasswordInput, els.cloudSignInBtn, els.cloudSignUpBtn].forEach(node => {
+      if (node) node.disabled = cloud.busy || loggedIn || !cloud.ready;
+    });
+    if (els.cloudActions) {
+      els.cloudActions.hidden = !loggedIn;
+      els.cloudActions.setAttribute('aria-hidden', loggedIn ? 'false' : 'true');
+    }
+    if (els.cloudUserLabel) els.cloudUserLabel.textContent = loggedIn ? getCloudDisplayName() : '';
     if (els.cloudLogoutBtn) {
-      els.cloudLogoutBtn.hidden = !loggedIn;
       els.cloudLogoutBtn.disabled = cloud.busy;
     }
-    if (els.cloudRecordsSelect) els.cloudRecordsSelect.disabled = cloud.busy || !loggedIn || cloud.records.length === 0;
     if (els.cloudSaveBtn) els.cloudSaveBtn.disabled = cloud.busy || !loggedIn;
-    if (els.cloudLoadBtn) els.cloudLoadBtn.disabled = cloud.busy || !loggedIn;
-    if (els.cloudUpdateBtn) els.cloudUpdateBtn.disabled = cloud.busy || !loggedIn || !hasRecord;
-    if (els.cloudDeleteBtn) els.cloudDeleteBtn.disabled = cloud.busy || !loggedIn || !hasRecord;
+    if (els.refreshCloudRecordsBtn) els.refreshCloudRecordsBtn.disabled = cloud.busy || !loggedIn;
+    if (els.saveLotteryCloudBtn) els.saveLotteryCloudBtn.disabled = cloud.busy || !loggedIn;
   }
 
   function setCloudBusy(isBusy) {
     cloud.busy = isBusy;
     updatePersistenceUI();
+  }
+
+  function setCloudMessage(message) {
+    if (els.cloudMessage) els.cloudMessage.textContent = message || '';
+  }
+
+  function getCloudDisplayName() {
+    const metaName = cloud.user?.user_metadata?.display_name;
+    return metaName || cloud.user?.email || t('cloudAccount');
+  }
+
+  function renderCloudRecordsTable() {
+    if (!els.cloudRecordsTable) return;
+    const seatRecords = cloud.records.filter(record => record.payload?.type !== 'lottery-entry');
+    els.cloudRecordsTable.innerHTML = '';
+    if (els.cloudRecordsEmpty) els.cloudRecordsEmpty.hidden = seatRecords.length > 0;
+    seatRecords.forEach(record => {
+      const row = document.createElement('tr');
+      row.dataset.id = record.id;
+      row.innerHTML = `
+        <td>${escapeHtml(record.event_date || formatSavedAt(record.updated_at || record.created_at))}</td>
+        <td>${escapeHtml(record.performance_title || t('performance'))}</td>
+        <td>${escapeHtml(record.seat_label || record.payload?.seat?.label || t('noSelection'))}</td>
+        <td>${escapeHtml(record.public_consent ? t('publicBadge') : t('privateBadge'))}</td>
+        <td>
+          <div class="record-buttons">
+            <button type="button" data-action="load">${escapeHtml(t('recordLoad'))}</button>
+            <button type="button" data-action="update">${escapeHtml(t('recordUpdate'))}</button>
+            <button type="button" class="delete" data-action="delete">${escapeHtml(t('recordDelete'))}</button>
+          </div>
+        </td>
+      `;
+      els.cloudRecordsTable.appendChild(row);
+    });
+  }
+
+  function handleCloudRecordsTableClick(event) {
+    const button = event.target.closest('button[data-action]');
+    const row = event.target.closest('tr[data-id]');
+    if (!button || !row) return;
+    const id = row.dataset.id;
+    if (button.dataset.action === 'load') loadCloudSelection(id);
+    if (button.dataset.action === 'update') updateCloudMemo(id);
+    if (button.dataset.action === 'delete') deleteCloudMemo(id);
+  }
+
+  function switchTab(name) {
+    els.tabButtons.forEach(button => button.classList.toggle('active', button.dataset.tab === name));
+    els.tabPanels.forEach(panel => panel.classList.toggle('active', panel.id === `tab-${name}`));
+    if (name === 'records') loadCloudRecords({ silent: true });
+    if (name === 'distribution') renderDistributionChart();
+  }
+
+  function renderLotteryRanges() {
+    if (!els.lotteryLeftColumn || !els.lotteryRightColumn) return;
+    els.lotteryLeftColumn.innerHTML = '';
+    els.lotteryRightColumn.innerHTML = '';
+    getLotteryRanges().forEach((range, index) => {
+      const button = document.createElement('button');
+      const entry = lotteryState.entries.find(item => item.range === range.key);
+      button.type = 'button';
+      button.className = 'lottery-range-button';
+      button.dataset.range = range.key;
+      button.innerHTML = `<strong>${range.label}</strong><span>${entry ? formatLotteryOrder(entry) : ''}</span>`;
+      button.classList.toggle('is-marked', Boolean(entry));
+      button.classList.toggle('is-self', Boolean(entry?.isSelf));
+      button.addEventListener('click', () => markLotteryRange(range.key));
+      button.addEventListener('dblclick', event => { event.preventDefault(); markLotteryRange(range.key, true); });
+      (index < 13 ? els.lotteryLeftColumn : els.lotteryRightColumn).appendChild(button);
+    });
+  }
+
+  function getLotteryRanges() {
+    return [
+      { key: '1-9', label: '1~9' },
+      ...Array.from({ length: 25 }, (_, index) => {
+        const start = 10 + index * 10;
+        const end = start + 9;
+        return { key: `${start}-${end}`, label: `${start}~${end}` };
+      })
+    ];
+  }
+
+  function markLotteryRange(range, asSelf) {
+    let entry = lotteryState.entries.find(item => item.range === range);
+    if (!entry) {
+      entry = { range, order: lotteryState.nextOrder, isSelf: false };
+      lotteryState.entries.push(entry);
+      lotteryState.nextOrder += 1;
+    }
+    if (asSelf) {
+      lotteryState.entries.forEach(item => { item.isSelf = false; });
+      entry.isSelf = true;
+      lotteryState.selfRange = range;
+    }
+    renderLotteryRanges();
+    renderDistributionChart();
+  }
+
+  function formatLotteryOrder(entry) {
+    const base = `${entry.order}${t('tourUnit')}`;
+    return entry.isSelf ? `${base} / ${t('selfMark')}` : base;
+  }
+
+  function clearLotteryRecord() {
+    lotteryState.entries = [];
+    lotteryState.nextOrder = 1;
+    lotteryState.selfRange = '';
+    if (els.lotteryPublicConsent) els.lotteryPublicConsent.checked = false;
+    renderLotteryRanges();
+    renderDistributionChart();
+  }
+
+  function getLotteryPerformance() {
+    const id = els.lotteryPerformanceSelect?.value || state.performanceId;
+    return SEATMAP_DATA.performances.find(performance => performance.id === id) || SEATMAP_DATA.performances[0];
+  }
+
+  function buildLotteryPayload() {
+    const performance = getLotteryPerformance();
+    return {
+      version: 1,
+      type: 'lottery-entry',
+      source: 'web',
+      savedAt: new Date().toISOString(),
+      lang: state.lang,
+      eventDate: els.lotteryDateInput?.value || '',
+      performance: performance ? { id: performance.id, label: performance.label } : null,
+      entries: lotteryState.entries.map(entry => ({ ...entry }))
+    };
+  }
+
+  async function saveLotteryCloudRecord() {
+    if (!requireCloudLogin()) return;
+    if (!lotteryState.entries.length) { showToast(t('lotteryNoMarks')); return; }
+    setCloudBusy(true);
+    const result = await writeCloudRow('insert', buildLotteryCloudRow());
+    setCloudBusy(false);
+    if (!result) return;
+    await loadCloudRecords({ silent: true });
+    showToast(t('lotterySaved'));
+  }
+
+  async function downloadLotteryImage() {
+    if (!lotteryState.entries.length) { showToast(t('lotteryNoMarks')); return; }
+    const dataUrl = buildLotteryImage();
+    if (shouldOpenPreview()) { openModal(dataUrl); return; }
+    const date = extractDateOnly(els.lotteryDateInput?.value) || new Date().toISOString().slice(0, 10);
+    triggerDownload(dataUrl, `akb48-entry-lottery_${date}.png`);
+  }
+
+  function buildLotteryImage() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 960;
+    canvas.height = 1280;
+    const ctx = canvas.getContext('2d');
+    drawLotteryCard(ctx, canvas.width, canvas.height);
+    return canvas.toDataURL('image/png');
+  }
+
+  function drawLotteryCard(ctx, width, height) {
+    ctx.fillStyle = '#fff7fb';
+    ctx.fillRect(0, 0, width, height);
+    ctx.fillStyle = '#ff007f';
+    ctx.font = '900 48px "Noto Sans JP", sans-serif';
+    ctx.fillText(t('lotteryTitle'), 56, 86);
+    ctx.fillStyle = '#1b2330';
+    ctx.font = '800 26px "Noto Sans JP", sans-serif';
+    ctx.fillText(getLotteryPerformance()?.label || '', 56, 136);
+    ctx.fillText(formatEventDateForDisplay(els.lotteryDateInput?.value || ''), 56, 176);
+    const ranges = getLotteryRanges();
+    const colW = 400;
+    const startY = 236;
+    ranges.forEach((range, index) => {
+      const col = index < 13 ? 0 : 1;
+      const row = index % 13;
+      const x = 56 + col * 448;
+      const y = startY + row * 74;
+      const entry = lotteryState.entries.find(item => item.range === range.key);
+      ctx.fillStyle = entry?.isSelf ? '#ffe1ef' : 'rgba(255,255,255,.95)';
+      roundRect(ctx, x, y, colW, 54, 18);
+      ctx.fill();
+      ctx.strokeStyle = entry ? '#ff007f' : '#ffd0e6';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+      ctx.fillStyle = '#1b2330';
+      ctx.font = '900 24px "Noto Sans JP", sans-serif';
+      ctx.fillText(range.label, x + 22, y + 35);
+      if (entry) {
+        ctx.fillStyle = entry.isSelf ? '#ff007f' : '#25718a';
+        ctx.textAlign = 'right';
+        ctx.fillText(formatLotteryOrder(entry), x + colW - 22, y + 35);
+        ctx.textAlign = 'left';
+      }
+    });
+  }
+
+  function renderDistributionChart() {
+    if (!els.distributionCanvas) return;
+    const records = cloud.records.filter(record => record.payload?.type === 'lottery-entry' && record.public_consent);
+    const localEntries = lotteryState.entries.length && els.lotteryPublicConsent?.checked ? [{ payload: buildLotteryPayload(), public_consent: true }] : [];
+    const source = records.length ? records : localEntries;
+    if (els.distributionEmpty) els.distributionEmpty.hidden = source.length > 0;
+    drawDistributionChart(source);
+  }
+
+  function drawDistributionChart(records) {
+    const canvas = els.distributionCanvas;
+    const ctx = canvas.getContext('2d');
+    const width = canvas.width;
+    const height = canvas.height;
+    ctx.clearRect(0, 0, width, height);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, width, height);
+    const ranges = getLotteryRanges();
+    const counts = new Map(ranges.map(range => [range.key, 0]));
+    records.forEach(record => {
+      (record.payload?.entries || []).forEach(entry => {
+        counts.set(entry.range, (counts.get(entry.range) || 0) + 1);
+      });
+    });
+    const max = Math.max(1, ...counts.values());
+    const left = 72;
+    const top = 62;
+    const barGap = 8;
+    const barW = Math.max(18, (width - left - 48) / ranges.length - barGap);
+    ctx.fillStyle = '#1b2330';
+    ctx.font = '900 26px "Noto Sans JP", sans-serif';
+    ctx.fillText(t('distributionTitle'), left, 38);
+    ranges.forEach((range, index) => {
+      const value = counts.get(range.key) || 0;
+      const h = Math.max(value ? 8 : 0, (value / max) * 330);
+      const x = left + index * (barW + barGap);
+      const y = top + 360 - h;
+      const grad = ctx.createLinearGradient(0, y, 0, top + 360);
+      grad.addColorStop(0, '#ff007f');
+      grad.addColorStop(1, '#00c9e8');
+      ctx.fillStyle = grad;
+      roundRect(ctx, x, y, barW, h, 7);
+      ctx.fill();
+      ctx.fillStyle = '#1b2330';
+      ctx.font = '800 13px "Noto Sans JP", sans-serif';
+      ctx.textAlign = 'center';
+      if (value) ctx.fillText(String(value), x + barW / 2, y - 8);
+      ctx.save();
+      ctx.translate(x + barW / 2, top + 388);
+      ctx.rotate(-Math.PI / 4);
+      ctx.fillText(range.label, 0, 0);
+      ctx.restore();
+      ctx.textAlign = 'left';
+    });
   }
 
   function formatCloudRecordLabel(record) {
@@ -796,6 +1062,21 @@
     if (!/^\d+$/.test(clean)) return null;
     const parsed = Number.parseInt(clean, 10);
     return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  function parseRangeStart(value) {
+    const match = String(value || '').match(/^(\d+)/);
+    return match ? Number.parseInt(match[1], 10) : null;
+  }
+
+  function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, char => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;'
+    }[char]));
   }
 
   function isPerformanceIdError(error) {

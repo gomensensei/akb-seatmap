@@ -33,7 +33,14 @@
       </div>
     </header>
 
-    <main class="workspace">
+    <nav class="tab-nav apple-glass-3d" aria-label="Main navigation">
+      <button class="tab-button active" type="button" data-tab="seat" data-i18n="tabSeatMemo">座位メモ</button>
+      <button class="tab-button" type="button" data-tab="records" data-i18n="tabSeatRecords">座位已保存紀錄</button>
+      <button class="tab-button" type="button" data-tab="lottery" data-i18n="tabLotteryRecord">抽選入場会紀錄</button>
+      <button class="tab-button" type="button" data-tab="distribution" data-i18n="tabLotteryDistribution">抽選入場会分布図</button>
+    </nav>
+
+    <main id="tab-seat" class="workspace tab-panel active">
       <section class="map-card" aria-label="Seat map">
         <div class="map-toolbar">
           <div class="selected-pill" id="selectedPill" data-i18n="noSelection">まだ選択されていません</div>
@@ -91,39 +98,28 @@
 
         <button class="link-button" id="copyLinkBtn" type="button" data-i18n="copyLink">共有リンクをコピー</button>
 
-        <div class="memo-panel" aria-label="Seat memo save controls">
-          <div class="memo-section local-save-section">
-            <div class="memo-section-head">
-              <p class="memo-title" data-i18n="localSaveTitle">Local save</p>
-              <p class="memo-status" id="localSaveStatus" data-i18n="localSaveReady">Saved in this browser only.</p>
-            </div>
-            <div class="memo-button-row">
-              <button class="secondary-button memo-button" id="localSaveBtn" type="button" data-i18n="saveLocal">Save locally</button>
-              <button class="ghost-button memo-button" id="localLoadBtn" type="button" data-i18n="loadLocal">Load local memo</button>
-            </div>
-          </div>
-
-          <div class="memo-section cloud-save-section">
+        <div class="memo-panel cloud-save-section" aria-label="Tool48 Account cloud save controls">
+          <div class="memo-section">
             <div class="memo-section-head">
               <p class="memo-title" data-i18n="cloudSaveTitle">Tool48 Account / Cloud Save</p>
-              <p class="memo-status" id="cloudStatus" data-i18n="cloudLocalOnly">Local-only mode. Login is optional.</p>
+              <p class="memo-status" id="cloudStatus" data-i18n="cloudLocalOnly">Login is optional. The tool still works without an account.</p>
             </div>
 
-            <div class="cloud-login-row">
+            <form id="cloudLoginForm" class="cloud-login-form" data-tool48-auth-logged-out>
+              <input id="cloudNicknameInput" class="control-input cloud-email-input" type="text" autocomplete="nickname" data-i18n-placeholder="cloudNicknamePlaceholder" placeholder="nickname" />
               <input id="cloudEmailInput" class="control-input cloud-email-input" type="email" inputmode="email" autocomplete="email" data-i18n-placeholder="cloudEmailPlaceholder" placeholder="email@example.com" />
-              <button class="secondary-button memo-button" id="cloudLoginBtn" type="button" data-i18n="cloudLogin">Login</button>
-              <button class="ghost-button memo-button" id="cloudLogoutBtn" type="button" data-i18n="cloudLogout" hidden>Logout</button>
+              <input id="cloudPasswordInput" class="control-input cloud-email-input" type="password" autocomplete="current-password" minlength="6" data-i18n-placeholder="cloudPasswordPlaceholder" placeholder="6+ characters" />
+              <button class="primary-button memo-button" id="cloudSignInBtn" type="submit" data-auth-action="signin" data-i18n="cloudSignIn">Sign in</button>
+              <button class="secondary-button memo-button" id="cloudSignUpBtn" type="submit" data-auth-action="signup" data-i18n="cloudCreateAccount">Create account</button>
+            </form>
+
+            <div id="cloudActions" class="cloud-actions" data-tool48-auth-logged-in hidden>
+              <span class="cloud-user-pill" id="cloudUserLabel"></span>
+              <button class="ghost-button memo-button" id="cloudLogoutBtn" type="button" data-i18n="cloudSignOut">Sign out</button>
             </div>
 
-            <div class="cloud-record-controls">
-              <select id="cloudRecordsSelect" class="control-input cloud-record-select" data-i18n-aria-label="cloudRecordsLabel" aria-label="Cloud records"></select>
-              <div class="memo-button-grid">
-                <button class="primary-button memo-button" id="cloudSaveBtn" type="button" data-i18n="saveCloud">Save to cloud</button>
-                <button class="secondary-button memo-button" id="cloudLoadBtn" type="button" data-i18n="loadCloud">Load cloud records</button>
-                <button class="secondary-button memo-button" id="cloudUpdateBtn" type="button" data-i18n="updateCloud">Update selected</button>
-                <button class="ghost-button memo-button" id="cloudDeleteBtn" type="button" data-i18n="deleteCloud">Delete selected</button>
-              </div>
-            </div>
+            <p id="cloudMessage" class="memo-status"></p>
+            <button class="primary-button memo-button" id="cloudSaveBtn" type="button" data-i18n="saveCloud">Save seat memo</button>
           </div>
         </div>
 
@@ -132,6 +128,88 @@
         </div>
       </aside>
     </main>
+
+    <section id="tab-records" class="tab-panel">
+      <div class="records-card apple-glass-3d">
+        <div class="section-head compact">
+          <div>
+            <p class="eyebrow" data-i18n="recordsEyebrow">Cloud Records</p>
+            <h2 data-i18n="seatRecordsTitle">座位已保存紀錄</h2>
+          </div>
+          <button class="secondary-button memo-button" id="refreshCloudRecordsBtn" type="button" data-i18n="refreshRecords">Refresh</button>
+        </div>
+        <div class="records-table-wrap">
+          <table class="records-table">
+            <thead>
+              <tr>
+                <th data-i18n="recordDate">Date</th>
+                <th data-i18n="recordPerformance">Performance</th>
+                <th data-i18n="recordSeat">Seat</th>
+                <th data-i18n="recordVisibility">Visibility</th>
+                <th data-i18n="recordActions">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="cloudRecordsTable"></tbody>
+          </table>
+        </div>
+        <div id="cloudRecordsEmpty" class="record-empty" data-i18n="cloudNoRecords">No cloud records yet.</div>
+      </div>
+    </section>
+
+    <section id="tab-lottery" class="tab-panel">
+      <div class="records-card lottery-card apple-glass-3d">
+        <div class="section-head compact">
+          <div>
+            <p class="eyebrow" data-i18n="lotteryEyebrow">Entry Lottery</p>
+            <h2 data-i18n="lotteryTitle">抽選入場会紀錄</h2>
+          </div>
+          <button class="ghost-button memo-button" id="clearLotteryBtn" type="button" data-i18n="clearLottery">Clear</button>
+        </div>
+
+        <div class="lottery-form-row">
+          <label class="control-section">
+            <span class="field-label" data-i18n="performance">公演名</span>
+            <select id="lotteryPerformanceSelect" class="control-input"></select>
+          </label>
+          <label class="control-section">
+            <span class="field-label" data-i18n="eventDate">イベント日時</span>
+            <input id="lotteryDateInput" class="control-input" type="datetime-local" />
+          </label>
+        </div>
+
+        <div class="lottery-layout">
+          <div class="lottery-range-column" id="lotteryLeftColumn"></div>
+          <div class="lottery-range-column" id="lotteryRightColumn"></div>
+        </div>
+
+        <label class="public-consent lottery-consent">
+          <input id="lotteryPublicConsent" type="checkbox" />
+          <span>
+            <strong data-i18n="lotteryPublicTitle">保存成公開數據</strong>
+            <small data-i18n="lotteryPublicText">只會用於匿名分布統計；私人備註不會公開。</small>
+          </span>
+        </label>
+
+        <div class="button-row lottery-actions">
+          <button class="primary-button" id="saveLotteryCloudBtn" type="button" data-i18n="saveLotteryCloud">Save lottery record</button>
+          <button class="secondary-button" id="downloadLotteryBtn" type="button" data-i18n="downloadLottery">Output image</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="tab-distribution" class="tab-panel">
+      <div class="records-card apple-glass-3d">
+        <div class="section-head compact">
+          <div>
+            <p class="eyebrow" data-i18n="distributionEyebrow">Distribution</p>
+            <h2 data-i18n="distributionTitle">抽選入場会分布図</h2>
+          </div>
+          <button class="secondary-button memo-button" id="refreshDistributionBtn" type="button" data-i18n="refreshDistribution">Refresh</button>
+        </div>
+        <canvas id="distributionCanvas" class="distribution-canvas" width="960" height="520" aria-label="Lottery distribution chart"></canvas>
+        <div id="distributionEmpty" class="record-empty" data-i18n="distributionEmpty">No public lottery data yet.</div>
+      </div>
+    </section>
 
     <footer class="site-footer apple-glass-3d">
       <p data-i18n="siteDisclaimer">本サイトはファンである ゴメン先生 (gomensensei) が作成した非公式のものであり、AKB48運営とは一切関係ありません。各権利者に帰属します。</p>
