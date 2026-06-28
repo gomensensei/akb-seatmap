@@ -56,6 +56,18 @@ button, select, input, .nav-icon, .field-label { flex-shrink: 0; white-space: no
 button:disabled { opacity:.48; cursor:not-allowed; transform:none!important; }
 .notes { padding:12px 13px; border-radius:16px; background:rgba(0,201,232,.09); color:#25718a; font-size:.84rem; font-weight:700; line-height:1.6; }
 .notes p { margin:0; }
+.memo-panel { display:flex; flex-direction:column; gap:10px; }
+.memo-section { display:flex; flex-direction:column; gap:10px; padding:12px; border-radius:16px; background:rgba(255,255,255,.68); border:1px solid rgba(255,64,129,.15); min-width:0; }
+.memo-section-head { display:flex; flex-direction:column; gap:3px; min-width:0; }
+.memo-title { margin:0; color:var(--ink); font-size:.84rem; font-weight:900; line-height:1.3; overflow-wrap:anywhere; }
+.memo-status { margin:0; color:var(--text-sec); font-size:.76rem; font-weight:800; line-height:1.45; overflow-wrap:anywhere; }
+.memo-button-row { display:grid; grid-template-columns:1fr 1fr; gap:8px; min-width:0; }
+.memo-button-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; min-width:0; }
+.memo-button { min-width:0; min-height:40px; padding-inline:10px; font-size:.82rem; line-height:1.25; white-space:normal; text-align:center; }
+.cloud-login-row { display:grid; grid-template-columns:minmax(0,1fr) auto auto; gap:8px; align-items:center; min-width:0; }
+.cloud-record-controls { display:flex; flex-direction:column; gap:8px; min-width:0; }
+.cloud-email-input,.cloud-record-select { min-width:0; min-height:40px; font-size:.84rem; }
+.cloud-save-section.is-local-only .cloud-record-controls { opacity:.62; }
 .modal-backdrop { position:fixed; inset:0; z-index:10000; display:none; place-items:center; padding:24px; background:rgba(20,28,38,.44); backdrop-filter:blur(10px); }
 .modal-backdrop:not([hidden]) { display:grid; }
 .modal-backdrop[hidden] { display:none!important; }
@@ -257,7 +269,8 @@ button, select, input, textarea {
   }
   .primary-button,
   .secondary-button,
-  .link-button {
+  .link-button,
+  .memo-button {
     white-space: normal;
     line-height: 1.3;
     padding-top: 10px;
@@ -424,6 +437,36 @@ button, select, input, textarea {
     border-radius: 14px;
     font-size: .78rem;
     line-height: 1.5;
+  }
+
+  .memo-section {
+    padding: 10px;
+    border-radius: 14px;
+    gap: 8px;
+  }
+
+  .memo-title {
+    font-size: .8rem;
+  }
+
+  .memo-status {
+    font-size: .72rem;
+  }
+
+  .cloud-login-row {
+    grid-template-columns: 1fr;
+  }
+
+  .memo-button-row,
+  .memo-button-grid {
+    grid-template-columns: 1fr;
+    gap: 7px;
+  }
+
+  .memo-button,
+  .cloud-email-input,
+  .cloud-record-select {
+    min-height: 40px;
   }
 
   .site-footer {

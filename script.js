@@ -1,10 +1,15 @@
-/* global SEATMAP_DATA, triggerDownload, drawInfoGraphicText */
+/* global SEATMAP_DATA, triggerDownload, drawInfoGraphicText, supabase */
 (function () {
   'use strict';
 
   const svgNS = 'http://www.w3.org/2000/svg';
   const SUPPORTED_LANGS = ['ja', 'zh', 'zh-Hans', 'ko', 'th', 'id', 'en'];
+  const SUPABASE_URL = 'https://jappifgnjssqxvjodgiv.supabase.co';
+  const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_oXfJyHkRtn1BHBw-9ictBQ__01qBCZg';
+  const CLOUD_TABLE = 'seat_memo_records';
+  const LOCAL_MEMO_KEY = 'tool48SeatMemoLocalV1';
   const state = { lang: 'ja', i18n: {}, selectedId: null, performanceId: 'reset', eventDate: '', displayName: '', entryNumber: '', tourRound: '', mapZoom: 1 };
+  const cloud = { client: null, user: null, records: [], selectedId: '', busy: false, ready: false };
   const els = {
     html: document.documentElement,
     overlay: document.getElementById('seatOverlay'),
@@ -29,6 +34,19 @@
     modal: document.getElementById('exportModal'),
     modalCloseBtn: document.getElementById('modalCloseBtn'),
     exportPreview: document.getElementById('exportPreview'),
+    localSaveBtn: document.getElementById('localSaveBtn'),
+    localLoadBtn: document.getElementById('localLoadBtn'),
+    localSaveStatus: document.getElementById('localSaveStatus'),
+    cloudSection: document.querySelector('.cloud-save-section'),
+    cloudStatus: document.getElementById('cloudStatus'),
+    cloudEmailInput: document.getElementById('cloudEmailInput'),
+    cloudLoginBtn: document.getElementById('cloudLoginBtn'),
+    cloudLogoutBtn: document.getElementById('cloudLogoutBtn'),
+    cloudRecordsSelect: document.getElementById('cloudRecordsSelect'),
+    cloudSaveBtn: document.getElementById('cloudSaveBtn'),
+    cloudLoadBtn: document.getElementById('cloudLoadBtn'),
+    cloudUpdateBtn: document.getElementById('cloudUpdateBtn'),
+    cloudDeleteBtn: document.getElementById('cloudDeleteBtn'),
     toast: document.getElementById('toast')
   };
   const itemById = new Map(SEATMAP_DATA.items.map(item => [item.id, item]));
@@ -62,6 +80,7 @@
     updateUI();
     applyMapZoom();
     resetMapView(false);
+    initPersistence();
   }
 
   function detectLanguage() {
@@ -164,6 +183,15 @@
     els.downloadBtn.addEventListener('click', exportImage);
     els.clearBtn.addEventListener('click', clearSelection);
     els.copyLinkBtn.addEventListener('click', copyShareLink);
+    els.localSaveBtn?.addEventListener('click', saveLocalMemo);
+    els.localLoadBtn?.addEventListener('click', loadLocalMemo);
+    els.cloudLoginBtn?.addEventListener('click', loginCloudAccount);
+    els.cloudLogoutBtn?.addEventListener('click', logoutCloudAccount);
+    els.cloudSaveBtn?.addEventListener('click', saveCloudMemo);
+    els.cloudLoadBtn?.addEventListener('click', loadCloudSelection);
+    els.cloudUpdateBtn?.addEventListener('click', updateCloudMemo);
+    els.cloudDeleteBtn?.addEventListener('click', deleteCloudMemo);
+    els.cloudRecordsSelect?.addEventListener('change', () => { cloud.selectedId = els.cloudRecordsSelect.value; updatePersistenceUI(); });
     if (els.zoomOutBtn) els.zoomOutBtn.addEventListener('click', () => setMapZoom(state.mapZoom - ZOOM_STEP));
     if (els.zoomInBtn) els.zoomInBtn.addEventListener('click', () => setMapZoom(state.mapZoom + ZOOM_STEP));
     window.addEventListener('resize', () => {
@@ -180,6 +208,7 @@
     document.querySelectorAll('[data-i18n-placeholder]').forEach(node => { node.placeholder = t(node.dataset.i18nPlaceholder); });
     document.querySelectorAll('[data-i18n-aria-label]').forEach(node => { node.setAttribute('aria-label', t(node.dataset.i18nAriaLabel)); });
     buildTourOptions();
+    updatePersistenceUI();
   }
 
   function resetMapView(withToast) {
@@ -373,6 +402,7 @@
       els.selectionSummary.textContent = t('noSelection');
       els.selectionSub.textContent = t('selectHint');
       els.downloadBtn.disabled = true;
+      updatePersistenceUI();
       return;
     }
     const label = getLocalizedSeatLabel(item);
@@ -380,6 +410,7 @@
     els.selectionSummary.textContent = label;
     els.selectionSub.textContent = t('selectedHint');
     els.downloadBtn.disabled = false;
+    updatePersistenceUI();
   }
 
   function getLocalizedSeatLabel(item) {
@@ -403,6 +434,373 @@
   }
 
   function getCurrentPerformance() { return SEATMAP_DATA.performances.find(p => p.id === state.performanceId) || SEATMAP_DATA.performances[0]; }
+
+  function initPersistence() {
+    refreshLocalSaveStatus();
+    updateCloudRecordOptions();
+    updatePersistenceUI();
+    initCloudSave();
+  }
+
+  function getStateSnapshot() {
+    return {
+      lang: state.lang,
+      selectedId: state.selectedId,
+      performanceId: state.performanceId,
+      eventDate: state.eventDate,
+      displayName: state.displayName,
+      entryNumber: state.entryNumber,
+      tourRound: state.tourRound,
+      mapZoom: state.mapZoom
+    };
+  }
+
+  function buildMemoPayload() {
+    const item = state.selectedId ? itemById.get(state.selectedId) : null;
+    const performance = getCurrentPerformance();
+    return {
+      version: 1,
+      source: 'web',
+      savedAt: new Date().toISOString(),
+      state: getStateSnapshot(),
+      performance: performance ? { id: performance.id, label: performance.label } : null,
+      seat: item ? {
+        id: item.id,
+        type: item.type,
+        section: item.section || null,
+        area: item.area || null,
+        row: item.row ?? null,
+        number: item.number ?? null,
+        zone: item.zone || null,
+        label: getLocalizedSeatLabel(item)
+      } : null
+    };
+  }
+
+  function applyMemoPayload(payload) {
+    const memoState = payload?.state || payload;
+    if (!memoState || typeof memoState !== 'object') throw new Error('Invalid memo payload');
+    if (SUPPORTED_LANGS.includes(memoState.lang)) state.lang = memoState.lang;
+    state.performanceId = SEATMAP_DATA.performances.some(p => p.id === memoState.performanceId) ? memoState.performanceId : 'reset';
+    state.selectedId = memoState.selectedId && itemById.has(memoState.selectedId) ? memoState.selectedId : null;
+    state.eventDate = typeof memoState.eventDate === 'string' ? memoState.eventDate.slice(0, 40) : '';
+    state.displayName = typeof memoState.displayName === 'string' ? memoState.displayName.slice(0, 28) : '';
+    state.entryNumber = typeof memoState.entryNumber === 'string' ? memoState.entryNumber.slice(0, 24) : '';
+    state.tourRound = /^([1-9]|1[0-9]|2[0-5])$/.test(String(memoState.tourRound || '')) ? String(memoState.tourRound) : '';
+    state.mapZoom = Number.isFinite(Number(memoState.mapZoom)) ? clamp(Number(memoState.mapZoom), ZOOM_MIN, ZOOM_MAX) : 1;
+    localStorage.setItem('seatmapLang', state.lang);
+    syncHash();
+    applyLanguage();
+    renderSelection();
+    updateUI();
+    applyMapZoom();
+    resetMapView(false);
+  }
+
+  function saveLocalMemo() {
+    try {
+      localStorage.setItem(LOCAL_MEMO_KEY, JSON.stringify(buildMemoPayload()));
+      refreshLocalSaveStatus();
+      showToast(t('localSaved'));
+    } catch (error) {
+      console.warn(error);
+      showToast(t('localSaveFailed'));
+    }
+  }
+
+  function loadLocalMemo() {
+    try {
+      const raw = localStorage.getItem(LOCAL_MEMO_KEY);
+      if (!raw) { showToast(t('localLoadMissing')); return; }
+      applyMemoPayload(JSON.parse(raw));
+      refreshLocalSaveStatus();
+      showToast(t('localLoaded'));
+    } catch (error) {
+      console.warn(error);
+      showToast(t('localLoadFailed'));
+    }
+  }
+
+  function refreshLocalSaveStatus() {
+    if (!els.localSaveStatus) return;
+    try {
+      const raw = localStorage.getItem(LOCAL_MEMO_KEY);
+      if (!raw) {
+        els.localSaveStatus.textContent = t('localSaveReady');
+        return;
+      }
+      const payload = JSON.parse(raw);
+      els.localSaveStatus.textContent = formatMessage('localSavedAt', { time: formatSavedAt(payload.savedAt) });
+    } catch {
+      els.localSaveStatus.textContent = t('localSaveReady');
+    }
+  }
+
+  async function initCloudSave() {
+    if (!els.cloudStatus) return;
+    if (!window.supabase?.createClient) {
+      cloud.ready = false;
+      updatePersistenceUI('cloudUnavailable');
+      return;
+    }
+    cloud.client = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
+    });
+    cloud.ready = true;
+    const { data } = await cloud.client.auth.getSession();
+    cloud.user = data.session?.user || null;
+    cloud.client.auth.onAuthStateChange((_event, session) => {
+      cloud.user = session?.user || null;
+      if (!cloud.user) {
+        cloud.records = [];
+        cloud.selectedId = '';
+        updateCloudRecordOptions();
+        updatePersistenceUI();
+        return;
+      }
+      loadCloudRecords({ silent: true });
+    });
+    if (cloud.user) await loadCloudRecords({ silent: true });
+    updatePersistenceUI();
+  }
+
+  async function loginCloudAccount() {
+    if (!cloud.client) { showToast(t('cloudUnavailable')); return; }
+    const email = els.cloudEmailInput?.value.trim();
+    if (!email) { showToast(t('cloudLoginEmailRequired')); return; }
+    setCloudBusy(true);
+    const { error } = await cloud.client.auth.signInWithOtp({
+      email,
+      options: { emailRedirectTo: window.location.href }
+    });
+    setCloudBusy(false);
+    if (error) { console.warn(error); showToast(t('cloudLoginFailed')); return; }
+    updatePersistenceUI('cloudLoginSent');
+    showToast(t('cloudLoginSent'));
+  }
+
+  async function logoutCloudAccount() {
+    if (!cloud.client) return;
+    setCloudBusy(true);
+    const { error } = await cloud.client.auth.signOut();
+    setCloudBusy(false);
+    if (error) { console.warn(error); showToast(t('cloudLogoutFailed')); return; }
+    cloud.user = null;
+    cloud.records = [];
+    cloud.selectedId = '';
+    updateCloudRecordOptions();
+    updatePersistenceUI();
+    showToast(t('cloudLoggedOut'));
+  }
+
+  async function saveCloudMemo() {
+    if (!requireCloudLogin()) return;
+    setCloudBusy(true);
+    const row = buildCloudRow();
+    const result = await writeCloudRow('insert', row);
+    setCloudBusy(false);
+    if (!result) return;
+    cloud.selectedId = result.id;
+    await loadCloudRecords({ silent: true });
+    showToast(t('cloudSaveSuccess'));
+  }
+
+  async function loadCloudSelection() {
+    if (!requireCloudLogin()) return;
+    if (!cloud.selectedId) {
+      await loadCloudRecords();
+      return;
+    }
+    const record = cloud.records.find(item => item.id === cloud.selectedId);
+    if (!record) { await loadCloudRecords(); return; }
+    try {
+      applyMemoPayload(record.payload || {});
+      showToast(t('cloudLoadSuccess'));
+    } catch (error) {
+      console.warn(error);
+      showToast(t('cloudActionFailed'));
+    }
+  }
+
+  async function updateCloudMemo() {
+    if (!requireCloudLogin()) return;
+    if (!cloud.selectedId) { showToast(t('cloudNoRecordSelected')); return; }
+    setCloudBusy(true);
+    const row = buildCloudRow();
+    row.updated_at = new Date().toISOString();
+    const result = await writeCloudRow('update', row, cloud.selectedId);
+    setCloudBusy(false);
+    if (!result) return;
+    await loadCloudRecords({ silent: true });
+    showToast(t('cloudUpdateSuccess'));
+  }
+
+  async function deleteCloudMemo() {
+    if (!requireCloudLogin()) return;
+    if (!cloud.selectedId) { showToast(t('cloudNoRecordSelected')); return; }
+    setCloudBusy(true);
+    const { error } = await cloud.client.from(CLOUD_TABLE).delete().eq('id', cloud.selectedId);
+    setCloudBusy(false);
+    if (error) { console.warn(error); showToast(t('cloudActionFailed')); return; }
+    cloud.selectedId = '';
+    await loadCloudRecords({ silent: true });
+    showToast(t('cloudDeleteSuccess'));
+  }
+
+  async function loadCloudRecords(options = {}) {
+    if (!requireCloudLogin(options.silent)) return;
+    setCloudBusy(true);
+    const { data, error } = await cloud.client
+      .from(CLOUD_TABLE)
+      .select('id,event_date,performance_title,seat_label,payload,created_at,updated_at')
+      .eq('user_id', cloud.user.id)
+      .order('updated_at', { ascending: false })
+      .limit(50);
+    setCloudBusy(false);
+    if (error) { console.warn(error); if (!options.silent) showToast(t('cloudActionFailed')); return; }
+    cloud.records = Array.isArray(data) ? data : [];
+    if (cloud.selectedId && !cloud.records.some(record => record.id === cloud.selectedId)) cloud.selectedId = '';
+    updateCloudRecordOptions();
+    updatePersistenceUI(options.silent ? undefined : 'cloudRecordsLoaded');
+    if (!options.silent) showToast(formatMessage('cloudRecordsLoaded', { count: cloud.records.length }));
+  }
+
+  function buildCloudRow() {
+    const item = state.selectedId ? itemById.get(state.selectedId) : null;
+    const performance = getCurrentPerformance();
+    return {
+      user_id: cloud.user.id,
+      event_date: extractDateOnly(state.eventDate),
+      performance_id: state.performanceId || null,
+      performance_title: performance?.label || '',
+      seat_block: item?.section || item?.area || item?.zone || null,
+      seat_row: item?.row == null ? null : String(item.row),
+      seat_number: item?.number == null ? null : String(item.number),
+      seat_label: item ? getLocalizedSeatLabel(item) : null,
+      lottery_order: toIntOrNull(state.tourRound),
+      entry_order: toIntOrNull(state.entryNumber),
+      view_rating: null,
+      view_note: null,
+      private_note: null,
+      payload: buildMemoPayload(),
+      public_consent: false,
+      public_status: 'private',
+      source: 'web'
+    };
+  }
+
+  async function writeCloudRow(action, row, recordId) {
+    let result = await sendCloudRow(action, row, recordId);
+    if (result.error && row.performance_id && isPerformanceIdError(result.error)) {
+      const retryRow = { ...row, performance_id: null };
+      result = await sendCloudRow(action, retryRow, recordId);
+    }
+    if (result.error) {
+      console.warn(result.error);
+      showToast(t('cloudActionFailed'));
+      return null;
+    }
+    return result.data;
+  }
+
+  function sendCloudRow(action, row, recordId) {
+    if (action === 'update') {
+      return cloud.client.from(CLOUD_TABLE).update(row).eq('id', recordId).select('id').single();
+    }
+    return cloud.client.from(CLOUD_TABLE).insert(row).select('id').single();
+  }
+
+  function requireCloudLogin(silent) {
+    const ok = !!(cloud.client && cloud.user);
+    if (!ok && !silent) showToast(t('cloudLoginRequired'));
+    updatePersistenceUI();
+    return ok;
+  }
+
+  function updateCloudRecordOptions() {
+    if (!els.cloudRecordsSelect) return;
+    els.cloudRecordsSelect.innerHTML = '';
+    const empty = document.createElement('option');
+    empty.value = '';
+    empty.textContent = cloud.records.length ? t('cloudSelectRecord') : t('cloudNoRecords');
+    els.cloudRecordsSelect.appendChild(empty);
+    cloud.records.forEach(record => {
+      const option = document.createElement('option');
+      option.value = record.id;
+      option.textContent = formatCloudRecordLabel(record);
+      els.cloudRecordsSelect.appendChild(option);
+    });
+    els.cloudRecordsSelect.value = cloud.selectedId || '';
+  }
+
+  function updatePersistenceUI(statusKey) {
+    refreshLocalSaveStatus();
+    updateCloudRecordOptions();
+    const loggedIn = !!cloud.user;
+    const hasRecord = !!cloud.selectedId;
+    if (els.cloudSection) els.cloudSection.classList.toggle('is-local-only', !loggedIn);
+    if (els.cloudStatus) {
+      if (statusKey) els.cloudStatus.textContent = formatMessage(statusKey, { count: cloud.records.length });
+      else if (!cloud.ready) els.cloudStatus.textContent = t('cloudUnavailable');
+      else if (loggedIn) els.cloudStatus.textContent = formatMessage('cloudLoggedIn', { email: cloud.user.email || t('cloudAccount') });
+      else els.cloudStatus.textContent = t('cloudLocalOnly');
+    }
+    if (els.cloudEmailInput) els.cloudEmailInput.disabled = cloud.busy || loggedIn || !cloud.ready;
+    if (els.cloudLoginBtn) {
+      els.cloudLoginBtn.hidden = loggedIn;
+      els.cloudLoginBtn.disabled = cloud.busy || !cloud.ready;
+    }
+    if (els.cloudLogoutBtn) {
+      els.cloudLogoutBtn.hidden = !loggedIn;
+      els.cloudLogoutBtn.disabled = cloud.busy;
+    }
+    if (els.cloudRecordsSelect) els.cloudRecordsSelect.disabled = cloud.busy || !loggedIn || cloud.records.length === 0;
+    if (els.cloudSaveBtn) els.cloudSaveBtn.disabled = cloud.busy || !loggedIn;
+    if (els.cloudLoadBtn) els.cloudLoadBtn.disabled = cloud.busy || !loggedIn;
+    if (els.cloudUpdateBtn) els.cloudUpdateBtn.disabled = cloud.busy || !loggedIn || !hasRecord;
+    if (els.cloudDeleteBtn) els.cloudDeleteBtn.disabled = cloud.busy || !loggedIn || !hasRecord;
+  }
+
+  function setCloudBusy(isBusy) {
+    cloud.busy = isBusy;
+    updatePersistenceUI();
+  }
+
+  function formatCloudRecordLabel(record) {
+    const date = record.event_date || formatSavedAt(record.updated_at || record.created_at);
+    const title = record.performance_title || t('performance');
+    const seat = record.seat_label || t('noSelection');
+    return `${date} - ${title} - ${seat}`;
+  }
+
+  function formatMessage(key, replacements) {
+    return Object.entries(replacements).reduce((text, [name, value]) => text.split(`{${name}}`).join(value), t(key));
+  }
+
+  function formatSavedAt(value) {
+    if (!value) return '';
+    try {
+      return new Intl.DateTimeFormat(state.lang, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
+    } catch {
+      return String(value).slice(0, 16).replace('T', ' ');
+    }
+  }
+
+  function extractDateOnly(value) {
+    const match = String(value || '').match(/^\d{4}-\d{2}-\d{2}/);
+    return match ? match[0] : null;
+  }
+
+  function toIntOrNull(value) {
+    const clean = String(value || '').trim();
+    if (!/^\d+$/.test(clean)) return null;
+    const parsed = Number.parseInt(clean, 10);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  function isPerformanceIdError(error) {
+    return /performance_id|foreign key|seat_memo_records_performance_id_fkey/i.test(error.message || '');
+  }
 
   function copyShareLink() {
     syncHash();

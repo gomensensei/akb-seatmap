@@ -91,6 +91,42 @@
 
         <button class="link-button" id="copyLinkBtn" type="button" data-i18n="copyLink">共有リンクをコピー</button>
 
+        <div class="memo-panel" aria-label="Seat memo save controls">
+          <div class="memo-section local-save-section">
+            <div class="memo-section-head">
+              <p class="memo-title" data-i18n="localSaveTitle">Local save</p>
+              <p class="memo-status" id="localSaveStatus" data-i18n="localSaveReady">Saved in this browser only.</p>
+            </div>
+            <div class="memo-button-row">
+              <button class="secondary-button memo-button" id="localSaveBtn" type="button" data-i18n="saveLocal">Save locally</button>
+              <button class="ghost-button memo-button" id="localLoadBtn" type="button" data-i18n="loadLocal">Load local memo</button>
+            </div>
+          </div>
+
+          <div class="memo-section cloud-save-section">
+            <div class="memo-section-head">
+              <p class="memo-title" data-i18n="cloudSaveTitle">Tool48 Account / Cloud Save</p>
+              <p class="memo-status" id="cloudStatus" data-i18n="cloudLocalOnly">Local-only mode. Login is optional.</p>
+            </div>
+
+            <div class="cloud-login-row">
+              <input id="cloudEmailInput" class="control-input cloud-email-input" type="email" inputmode="email" autocomplete="email" data-i18n-placeholder="cloudEmailPlaceholder" placeholder="email@example.com" />
+              <button class="secondary-button memo-button" id="cloudLoginBtn" type="button" data-i18n="cloudLogin">Login</button>
+              <button class="ghost-button memo-button" id="cloudLogoutBtn" type="button" data-i18n="cloudLogout" hidden>Logout</button>
+            </div>
+
+            <div class="cloud-record-controls">
+              <select id="cloudRecordsSelect" class="control-input cloud-record-select" data-i18n-aria-label="cloudRecordsLabel" aria-label="Cloud records"></select>
+              <div class="memo-button-grid">
+                <button class="primary-button memo-button" id="cloudSaveBtn" type="button" data-i18n="saveCloud">Save to cloud</button>
+                <button class="secondary-button memo-button" id="cloudLoadBtn" type="button" data-i18n="loadCloud">Load cloud records</button>
+                <button class="secondary-button memo-button" id="cloudUpdateBtn" type="button" data-i18n="updateCloud">Update selected</button>
+                <button class="ghost-button memo-button" id="cloudDeleteBtn" type="button" data-i18n="deleteCloud">Delete selected</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="notes">
           <p data-i18n="safariNote">iPhone / Safari では画像プレビューが開きます。長押しして保存してください。</p>
         </div>
@@ -116,6 +152,7 @@
 
   <script src="core.js?v=3.6.0"></script>
   <script src="seatmap-data.js?v=3.6.0"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="script.js?v=3.6.0"></script>
 </body>
 </html>
