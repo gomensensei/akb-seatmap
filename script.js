@@ -199,18 +199,19 @@
   }
 
   function buildDistributionFilters() {
+    const firstYear = 2026;
     setSelectOptions(els.filterYearSelect, [
       ['', t('filterAll')],
-      ...Array.from({ length: 8 }, (_, index) => {
-        const year = String(new Date().getFullYear() - index);
-        return [year, year];
+      ...Array.from({ length: 12 }, (_, index) => {
+        const year = String(firstYear + index);
+        return [year, formatMessage('filterYearOption', { year })];
       })
     ]);
     setSelectOptions(els.filterMonthSelect, [
       ['', t('filterAll')],
       ...Array.from({ length: 12 }, (_, index) => {
         const value = String(index + 1).padStart(2, '0');
-        return [value, value];
+        return [value, formatMessage('filterMonthOption', { month: String(index + 1) })];
       })
     ]);
     setSelectOptions(els.filterMonthPartSelect, [
@@ -1408,9 +1409,10 @@
   }
 
   function drawChartTitle(ctx, title) {
-    ctx.fillStyle = '#1b2330';
-    ctx.font = '900 18px "Noto Sans JP", sans-serif';
-    ctx.fillText(title, 22, 30);
+    // Section cards already render visible titles. Canvas titles stay suppressed
+    // to avoid duplicate headings while keeping the drawing code simple.
+    void ctx;
+    void title;
   }
 
   function drawEmptyChart(ctx, width, height) {
