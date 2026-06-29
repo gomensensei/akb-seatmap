@@ -119,7 +119,17 @@
     "distributionEyebrow": "Distribution",
     "distributionTitle": "抽選入場会分布図",
     "refreshDistribution": "更新",
-    "distributionEmpty": "公開可能な抽選データはまだありません。"
+    "distributionEmpty": "公開可能な抽選データはまだありません。",
+    "accountNavGuest": "Account",
+    "cloudSaveHint": "クラウド保存は右上の Account ボタンからログインしてください。",
+    "lotteryHelp": "番号帯をクリックすると次の巡目を記録します。もう一度クリックすると解除、ダブルクリックで自分を設定できます。",
+    "distributionSubtitle": "各番号帯の平均巡目を表示します。数値が小さいほど早く出ています。",
+    "distLowNo": "小さい番号",
+    "distMidNo": "中間番号",
+    "distHighNo": "大きい番号",
+    "distConsecutive": "連番率",
+    "distMonthBias": "月別 low / mid / high 傾向",
+    "publicStatsBlocked": "公開分布を読むには Supabase の公開SELECT policy が必要です。"
   },
   "zh": {
     "eyebrow": "AKB48 Theater Seat Memo",
@@ -241,7 +251,17 @@
     "distributionEyebrow": "Distribution",
     "distributionTitle": "抽選入場会分布図",
     "refreshDistribution": "更新",
-    "distributionEmpty": "尚未有可公開的抽選分布數據。"
+    "distributionEmpty": "尚未有可公開的抽選分布數據。",
+    "accountNavGuest": "Account",
+    "cloudSaveHint": "請用右上角 Account 按鈕登入雲端保存。",
+    "lotteryHelp": "按一下數字組會標記下一個巡目；再按一次可反選；double click 可標記自己的組別為「自分」。",
+    "distributionSubtitle": "顯示各號碼組平均第幾巡出現；數值越細代表越早出。",
+    "distLowNo": "細 no 平均",
+    "distMidNo": "中 no 平均",
+    "distHighNo": "大 no 平均",
+    "distConsecutive": "連 no 率",
+    "distMonthBias": "月份 low / mid / high 偏向",
+    "publicStatsBlocked": "如要讀取全站公開分布，需要 Supabase 加公開 SELECT policy。"
   },
   "zh-Hans": {
     "eyebrow": "AKB48 Theater Seat Memo",
@@ -363,7 +383,17 @@
     "distributionEyebrow": "Distribution",
     "distributionTitle": "抽选入场会分布图",
     "refreshDistribution": "更新",
-    "distributionEmpty": "尚未有可公开的抽选分布数据。"
+    "distributionEmpty": "尚未有可公开的抽选分布数据。",
+    "accountNavGuest": "Account",
+    "cloudSaveHint": "请用右上角 Account 按钮登录云端保存。",
+    "lotteryHelp": "点一下数字组会标记下一个巡目；再点一次可取消；double click 可标记自己的组别为「自分」。",
+    "distributionSubtitle": "显示各号码组平均第几巡出现；数值越小代表越早出。",
+    "distLowNo": "小 no 平均",
+    "distMidNo": "中 no 平均",
+    "distHighNo": "大 no 平均",
+    "distConsecutive": "连 no 率",
+    "distMonthBias": "月份 low / mid / high 偏向",
+    "publicStatsBlocked": "如要读取全站公开分布，需要 Supabase 加公开 SELECT policy。"
   },
   "ko": {
     "eyebrow": "AKB48 Theater Seat Memo",
@@ -485,7 +515,17 @@
     "distributionEyebrow": "Distribution",
     "distributionTitle": "입장 추첨 분포도",
     "refreshDistribution": "새로고침",
-    "distributionEmpty": "공개 가능한 추첨 데이터가 아직 없습니다."
+    "distributionEmpty": "공개 가능한 추첨 데이터가 아직 없습니다.",
+    "accountNavGuest": "Account",
+    "cloudSaveHint": "클라우드 저장은 오른쪽 위 Account 버튼에서 로그인해 주세요.",
+    "lotteryHelp": "번호 구간을 클릭하면 다음 순번으로 기록합니다. 다시 클릭하면 해제, 더블 클릭하면 본인 구간으로 표시합니다.",
+    "distributionSubtitle": "각 번호 구간의 평균 순번을 표시합니다. 숫자가 작을수록 더 빨리 나온 것입니다.",
+    "distLowNo": "낮은 번호 평균",
+    "distMidNo": "중간 번호 평균",
+    "distHighNo": "높은 번호 평균",
+    "distConsecutive": "연속 번호율",
+    "distMonthBias": "월별 low / mid / high 경향",
+    "publicStatsBlocked": "전체 공개 분포를 읽으려면 Supabase 공개 SELECT policy가 필요합니다."
   },
   "th": {
     "eyebrow": "AKB48 Theater Seat Memo",
@@ -607,7 +647,17 @@
     "distributionEyebrow": "Distribution",
     "distributionTitle": "กราฟกระจายลำดับเข้าชม",
     "refreshDistribution": "รีเฟรช",
-    "distributionEmpty": "ยังไม่มีข้อมูลลำดับที่เปิดเผยได้"
+    "distributionEmpty": "ยังไม่มีข้อมูลลำดับที่เปิดเผยได้",
+    "accountNavGuest": "Account",
+    "cloudSaveHint": "เข้าสู่ระบบ Cloud Save ได้จากปุ่ม Account ด้านขวาบน",
+    "lotteryHelp": "แตะช่วงหมายเลขเพื่อบันทึกลำดับถัดไป แตะซ้ำเพื่อยกเลิก แตะสองครั้งเพื่อทำเครื่องหมายเป็น 自分",
+    "distributionSubtitle": "แสดงลำดับเฉลี่ยของแต่ละช่วงหมายเลข ค่ายิ่งน้อยยิ่งออกเร็ว",
+    "distLowNo": "เลขต่ำเฉลี่ย",
+    "distMidNo": "เลขกลางเฉลี่ย",
+    "distHighNo": "เลขสูงเฉลี่ย",
+    "distConsecutive": "อัตราเลขต่อเนื่อง",
+    "distMonthBias": "แนวโน้มรายเดือน low / mid / high",
+    "publicStatsBlocked": "ต้องเพิ่ม Supabase public SELECT policy เพื่ออ่านสถิติรวมแบบสาธารณะ"
   },
   "id": {
     "eyebrow": "AKB48 Theater Seat Memo",
@@ -729,7 +779,17 @@
     "distributionEyebrow": "Distribution",
     "distributionTitle": "Distribusi undian masuk",
     "refreshDistribution": "Muat ulang",
-    "distributionEmpty": "Belum ada data undian publik."
+    "distributionEmpty": "Belum ada data undian publik.",
+    "accountNavGuest": "Account",
+    "cloudSaveHint": "Gunakan tombol Account di kanan atas untuk cloud save.",
+    "lotteryHelp": "Klik rentang nomor untuk menandai giliran berikutnya. Klik lagi untuk membatalkan. Double click untuk menandai grup sendiri sebagai 自分.",
+    "distributionSubtitle": "Menampilkan rata-rata giliran tiap rentang nomor. Angka lebih kecil berarti muncul lebih awal.",
+    "distLowNo": "Rata-rata no kecil",
+    "distMidNo": "Rata-rata no tengah",
+    "distHighNo": "Rata-rata no besar",
+    "distConsecutive": "Rasio no berurutan",
+    "distMonthBias": "Bias bulanan low / mid / high",
+    "publicStatsBlocked": "Perlu Supabase public SELECT policy untuk membaca distribusi publik."
   },
   "en": {
     "eyebrow": "AKB48 Theater Seat Memo",
@@ -851,6 +911,16 @@
     "distributionEyebrow": "Distribution",
     "distributionTitle": "Entry lottery distribution",
     "refreshDistribution": "Refresh",
-    "distributionEmpty": "No public lottery data yet."
+    "distributionEmpty": "No public lottery data yet.",
+    "accountNavGuest": "Account",
+    "cloudSaveHint": "Use the Account button in the top-right bar for cloud save.",
+    "lotteryHelp": "Click a number group to mark the next entry round. Click again to unmark it. Double click to mark your own group as 自分.",
+    "distributionSubtitle": "Shows the average entry round per number group. Lower values mean earlier entry.",
+    "distLowNo": "Low no. avg",
+    "distMidNo": "Mid no. avg",
+    "distHighNo": "High no. avg",
+    "distConsecutive": "Consecutive no. rate",
+    "distMonthBias": "Monthly low / mid / high tendency",
+    "publicStatsBlocked": "A Supabase public SELECT policy is needed to read site-wide public distribution."
   }
 }

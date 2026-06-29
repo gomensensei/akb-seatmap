@@ -8,7 +8,7 @@
   const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_oXfJyHkRtn1BHBw-9ictBQ__01qBCZg';
   const CLOUD_TABLE = 'seat_memo_records';
   const state = { lang: 'ja', i18n: {}, selectedId: null, performanceId: 'reset', eventDate: '', displayName: '', entryNumber: '', tourRound: '', mapZoom: 1 };
-  const cloud = { client: null, user: null, records: [], selectedId: '', busy: false, ready: false };
+  const cloud = { client: null, user: null, records: [], publicLotteryRecords: [], selectedId: '', busy: false, ready: false };
   const lotteryState = { entries: [], nextOrder: 1, selfRange: '' };
   const els = {
     html: document.documentElement,
@@ -45,6 +45,8 @@
     cloudSignUpBtn: document.getElementById('cloudSignUpBtn'),
     cloudActions: document.getElementById('cloudActions'),
     cloudUserLabel: document.getElementById('cloudUserLabel'),
+    accountToggleBtn: document.getElementById('accountToggleBtn'),
+    accountPopover: document.getElementById('accountPopover'),
     cloudLogoutBtn: document.getElementById('cloudLogoutBtn'),
     cloudSaveBtn: document.getElementById('cloudSaveBtn'),
     tabButtons: Array.from(document.querySelectorAll('.tab-button')),
@@ -71,6 +73,7 @@
   const ZOOM_STEP = 0.15;
   let pinchState = null;
   let resizeTimer = null;
+  let lotteryClickTimer = null;
 
   bindModalFailsafe();
   document.addEventListener('DOMContentLoaded', init);
@@ -215,6 +218,12 @@
     els.clearBtn.addEventListener('click', clearSelection);
     els.copyLinkBtn.addEventListener('click', copyShareLink);
     els.tabButtons.forEach(button => button.addEventListener('click', () => switchTab(button.dataset.tab)));
+    els.accountToggleBtn?.addEventListener('click', () => toggleAccountPopover());
+    document.addEventListener('click', event => {
+      if (!els.accountPopover || els.accountPopover.hidden) return;
+      if (els.accountPopover.contains(event.target) || els.accountToggleBtn?.contains(event.target)) return;
+      els.accountPopover.hidden = true;
+    });
     els.cloudLoginForm?.addEventListener('submit', loginCloudAccount);
     els.cloudLogoutBtn?.addEventListener('click', logoutCloudAccount);
     els.cloudSaveBtn?.addEventListener('click', saveCloudMemo);
@@ -473,6 +482,11 @@
 
   function getCurrentPerformance() { return SEATMAP_DATA.performances.find(p => p.id === state.performanceId) || SEATMAP_DATA.performances[0]; }
 
+  function toggleAccountPopover(forceOpen) {
+    if (!els.accountPopover) return;
+    els.accountPopover.hidden = typeof forceOpen === 'boolean' ? !forceOpen : !els.accountPopover.hidden;
+  }
+
   function initPersistence() {
     updatePersistenceUI();
     initCloudSave();
@@ -550,6 +564,7 @@
       cloud.user = session?.user || null;
       if (!cloud.user) {
         cloud.records = [];
+        cloud.publicLotteryRecords = [];
         cloud.selectedId = '';
         renderCloudRecordsTable();
         renderDistributionChart();
@@ -559,6 +574,7 @@
       loadCloudRecords({ silent: true });
     });
     if (cloud.user) await loadCloudRecords({ silent: true });
+    await loadPublicLotteryRecords({ silent: true });
     updatePersistenceUI();
   }
 
@@ -583,6 +599,7 @@
     setCloudMessage(action === 'signup' && !result.data.session ? t('cloudSignupNeedsConfirm') : t('cloudSignedIn'));
     updatePersistenceUI();
     if (cloud.user) await loadCloudRecords({ silent: true });
+    if (cloud.user) toggleAccountPopover(false);
   }
 
   async function logoutCloudAccount() {
@@ -593,6 +610,7 @@
     if (error) { console.warn(error); showToast(t('cloudLogoutFailed')); return; }
     cloud.user = null;
     cloud.records = [];
+    cloud.publicLotteryRecords = [];
     cloud.selectedId = '';
     renderCloudRecordsTable();
     renderDistributionChart();
@@ -665,9 +683,28 @@
     cloud.records = Array.isArray(data) ? data : [];
     if (cloud.selectedId && !cloud.records.some(record => record.id === cloud.selectedId)) cloud.selectedId = '';
     renderCloudRecordsTable();
+    await loadPublicLotteryRecords({ silent: true });
     renderDistributionChart();
     updatePersistenceUI(options.silent ? undefined : 'cloudRecordsLoaded');
     if (!options.silent) showToast(formatMessage('cloudRecordsLoaded', { count: cloud.records.length }));
+  }
+
+  async function loadPublicLotteryRecords(options = {}) {
+    if (!cloud.client) return;
+    const { data, error } = await cloud.client
+      .from(CLOUD_TABLE)
+      .select('id,event_date,performance_title,payload,public_consent,public_status,created_at')
+      .eq('public_consent', true)
+      .in('public_status', ['pending', 'approved'])
+      .order('event_date', { ascending: true })
+      .limit(500);
+    if (error) {
+      console.warn('Public lottery records unavailable', error);
+      if (!options.silent) setCloudMessage(`${t('publicStatsBlocked')} ${error.message || ''}`.trim());
+      cloud.publicLotteryRecords = [];
+      return;
+    }
+    cloud.publicLotteryRecords = (Array.isArray(data) ? data : []).filter(record => record.payload?.type === 'lottery-entry');
   }
 
   function buildCloudRow() {
@@ -676,7 +713,7 @@
     return {
       user_id: cloud.user.id,
       event_date: extractDateOnly(state.eventDate),
-      performance_id: state.performanceId || null,
+      performance_id: null,
       performance_title: performance?.label || '',
       seat_block: item?.section || item?.area || item?.zone || null,
       seat_row: item?.row == null ? null : String(item.row),
@@ -701,7 +738,7 @@
     return {
       user_id: cloud.user.id,
       event_date: extractDateOnly(els.lotteryDateInput?.value),
-      performance_id: performance?.id || null,
+      performance_id: null,
       performance_title: performance?.label || '',
       seat_block: null,
       seat_row: null,
@@ -727,6 +764,7 @@
     }
     if (result.error) {
       console.warn(result.error);
+      setCloudMessage(`${t('cloudActionFailed')} ${result.error.message || ''}`.trim());
       showToast(t('cloudActionFailed'));
       return null;
     }
@@ -768,6 +806,7 @@
       els.cloudActions.setAttribute('aria-hidden', loggedIn ? 'false' : 'true');
     }
     if (els.cloudUserLabel) els.cloudUserLabel.textContent = loggedIn ? getCloudDisplayName() : '';
+    if (els.accountToggleBtn) els.accountToggleBtn.textContent = loggedIn ? getCloudDisplayName() : t('accountNavGuest');
     if (els.cloudLogoutBtn) {
       els.cloudLogoutBtn.disabled = cloud.busy;
     }
@@ -845,8 +884,16 @@
       button.innerHTML = `<strong>${range.label}</strong><span>${entry ? formatLotteryOrder(entry) : ''}</span>`;
       button.classList.toggle('is-marked', Boolean(entry));
       button.classList.toggle('is-self', Boolean(entry?.isSelf));
-      button.addEventListener('click', () => markLotteryRange(range.key));
-      button.addEventListener('dblclick', event => { event.preventDefault(); markLotteryRange(range.key, true); });
+      button.addEventListener('click', event => {
+        window.clearTimeout(lotteryClickTimer);
+        if (event.detail > 1) return;
+        lotteryClickTimer = window.setTimeout(() => markLotteryRange(range.key), 190);
+      });
+      button.addEventListener('dblclick', event => {
+        event.preventDefault();
+        window.clearTimeout(lotteryClickTimer);
+        markLotteryRange(range.key, true);
+      });
       (index < 13 ? els.lotteryLeftColumn : els.lotteryRightColumn).appendChild(button);
     });
   }
@@ -864,6 +911,20 @@
 
   function markLotteryRange(range, asSelf) {
     let entry = lotteryState.entries.find(item => item.range === range);
+    if (entry && !asSelf) {
+      lotteryState.entries = lotteryState.entries.filter(item => item.range !== range);
+      if (lotteryState.selfRange === range) lotteryState.selfRange = '';
+      renderLotteryRanges();
+      renderDistributionChart();
+      return;
+    }
+    if (entry && asSelf && entry.isSelf) {
+      entry.isSelf = false;
+      lotteryState.selfRange = '';
+      renderLotteryRanges();
+      renderDistributionChart();
+      return;
+    }
     if (!entry) {
       entry = { range, order: lotteryState.nextOrder, isSelf: false };
       lotteryState.entries.push(entry);
@@ -978,7 +1039,10 @@
 
   function renderDistributionChart() {
     if (!els.distributionCanvas) return;
-    const records = cloud.records.filter(record => record.payload?.type === 'lottery-entry' && record.public_consent);
+    const records = [
+      ...cloud.publicLotteryRecords,
+      ...cloud.records.filter(record => record.payload?.type === 'lottery-entry' && record.public_consent)
+    ];
     const localEntries = lotteryState.entries.length && els.lotteryPublicConsent?.checked ? [{ payload: buildLotteryPayload(), public_consent: true }] : [];
     const source = records.length ? records : localEntries;
     if (els.distributionEmpty) els.distributionEmpty.hidden = source.length > 0;
@@ -994,42 +1058,130 @@
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, width, height);
     const ranges = getLotteryRanges();
-    const counts = new Map(ranges.map(range => [range.key, 0]));
+    const stats = new Map(ranges.map(range => [range.key, { totalOrder: 0, count: 0 }]));
+    const monthly = {};
+    let consecutivePairs = 0;
+    let possiblePairs = 0;
     records.forEach(record => {
-      (record.payload?.entries || []).forEach(entry => {
-        counts.set(entry.range, (counts.get(entry.range) || 0) + 1);
+      const entries = (record.payload?.entries || []).filter(entry => Number.isFinite(Number(entry.order)));
+      entries.forEach(entry => {
+        const bucket = stats.get(entry.range);
+        if (bucket) {
+          bucket.totalOrder += Number(entry.order);
+          bucket.count += 1;
+        }
+        const month = String(record.event_date || record.payload?.eventDate || '').slice(0, 7) || 'unknown';
+        if (!monthly[month]) monthly[month] = { low: [], mid: [], high: [] };
+        monthly[month][getRangeGroup(entry.range)].push(Number(entry.order));
       });
+      const byStart = entries.slice().sort((a, b) => parseRangeStart(a.range) - parseRangeStart(b.range));
+      for (let i = 1; i < byStart.length; i += 1) {
+        possiblePairs += 1;
+        if (Math.abs(Number(byStart[i].order) - Number(byStart[i - 1].order)) === 1) consecutivePairs += 1;
+      }
     });
-    const max = Math.max(1, ...counts.values());
-    const left = 72;
-    const top = 62;
-    const barGap = 8;
-    const barW = Math.max(18, (width - left - 48) / ranges.length - barGap);
+    const rangeAverages = ranges.map(range => {
+      const item = stats.get(range.key);
+      return { ...range, avg: item.count ? item.totalOrder / item.count : null, count: item.count };
+    });
+    const maxAvg = Math.max(1, ...rangeAverages.map(item => item.avg || 0));
+    const groupAvg = group => average(rangeAverages.filter(item => getRangeGroup(item.key) === group).map(item => item.avg).filter(Boolean));
+    const consecutiveRate = possiblePairs ? consecutivePairs / possiblePairs : 0;
+
     ctx.fillStyle = '#1b2330';
-    ctx.font = '900 26px "Noto Sans JP", sans-serif';
-    ctx.fillText(t('distributionTitle'), left, 38);
-    ranges.forEach((range, index) => {
-      const value = counts.get(range.key) || 0;
-      const h = Math.max(value ? 8 : 0, (value / max) * 330);
+    ctx.font = '900 25px "Noto Sans JP", sans-serif';
+    ctx.fillText(t('distributionTitle'), 40, 38);
+    ctx.font = '800 13px "Noto Sans JP", sans-serif';
+    ctx.fillStyle = '#667085';
+    ctx.fillText(t('distributionSubtitle'), 40, 62);
+
+    [
+      [t('distLowNo'), formatAvgOrder(groupAvg('low'))],
+      [t('distMidNo'), formatAvgOrder(groupAvg('mid'))],
+      [t('distHighNo'), formatAvgOrder(groupAvg('high'))],
+      [t('distConsecutive'), `${Math.round(consecutiveRate * 100)}%`]
+    ].forEach((item, index) => {
+      const x = 40 + index * 225;
+      ctx.fillStyle = index === 0 ? '#fff2f8' : index === 3 ? '#eef9ff' : '#f8fbff';
+      roundRect(ctx, x, 82, 202, 72, 18);
+      ctx.fill();
+      ctx.fillStyle = '#667085';
+      ctx.font = '800 12px "Noto Sans JP", sans-serif';
+      ctx.fillText(item[0], x + 16, 110);
+      ctx.fillStyle = '#1b2330';
+      ctx.font = '900 24px "Noto Sans JP", sans-serif';
+      ctx.fillText(item[1], x + 16, 140);
+    });
+
+    const left = 72;
+    const top = 210;
+    const barGap = 7;
+    const barW = Math.max(18, (width - left - 42) / ranges.length - barGap);
+    rangeAverages.forEach((range, index) => {
+      const value = range.avg;
+      const h = value ? Math.max(8, (1 - (value - 1) / Math.max(maxAvg - 1, 1)) * 230) : 0;
       const x = left + index * (barW + barGap);
-      const y = top + 360 - h;
-      const grad = ctx.createLinearGradient(0, y, 0, top + 360);
+      const y = top + 250 - h;
+      const grad = ctx.createLinearGradient(0, y, 0, top + 250);
       grad.addColorStop(0, '#ff007f');
       grad.addColorStop(1, '#00c9e8');
       ctx.fillStyle = grad;
       roundRect(ctx, x, y, barW, h, 7);
       ctx.fill();
       ctx.fillStyle = '#1b2330';
-      ctx.font = '800 13px "Noto Sans JP", sans-serif';
+      ctx.font = '800 11px "Noto Sans JP", sans-serif';
       ctx.textAlign = 'center';
-      if (value) ctx.fillText(String(value), x + barW / 2, y - 8);
+      if (value) ctx.fillText(value.toFixed(1), x + barW / 2, y - 8);
       ctx.save();
-      ctx.translate(x + barW / 2, top + 388);
+      ctx.translate(x + barW / 2, top + 278);
       ctx.rotate(-Math.PI / 4);
       ctx.fillText(range.label, 0, 0);
       ctx.restore();
       ctx.textAlign = 'left';
     });
+
+    const months = Object.keys(monthly).sort().slice(-8);
+    const heatX = 72;
+    const heatY = 445;
+    ctx.fillStyle = '#1b2330';
+    ctx.font = '900 16px "Noto Sans JP", sans-serif';
+    ctx.fillText(t('distMonthBias'), heatX, heatY - 16);
+    months.forEach((month, index) => {
+      const x = heatX + index * 104;
+      ctx.fillStyle = '#667085';
+      ctx.font = '800 11px "Noto Sans JP", sans-serif';
+      ctx.fillText(month, x, heatY);
+      ['low', 'mid', 'high'].forEach((group, row) => {
+        const avg = average(monthly[month][group]);
+        ctx.fillStyle = heatColor(avg, maxAvg);
+        roundRect(ctx, x, heatY + 12 + row * 24, 82, 18, 6);
+        ctx.fill();
+      });
+    });
+  }
+
+  function getRangeGroup(range) {
+    const start = parseRangeStart(range);
+    if (start < 90) return 'low';
+    if (start < 180) return 'mid';
+    return 'high';
+  }
+
+  function average(values) {
+    return values.length ? values.reduce((sum, value) => sum + Number(value), 0) / values.length : null;
+  }
+
+  function formatAvgOrder(value) {
+    return value ? `${value.toFixed(1)}${t('tourUnit')}` : '-';
+  }
+
+  function heatColor(value, maxAvg) {
+    if (!value) return '#f3f4f6';
+    const good = 1 - (value - 1) / Math.max(maxAvg - 1, 1);
+    const red = Math.round(255 - good * 8);
+    const green = Math.round(238 - good * 120);
+    const blue = Math.round(246 + good * 5);
+    return `rgb(${red}, ${green}, ${blue})`;
   }
 
   function formatCloudRecordLabel(record) {

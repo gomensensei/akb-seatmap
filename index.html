@@ -13,6 +13,34 @@
 </head>
 <body class="native-feel">
   <div class="app-shell">
+    <header class="account-topbar">
+      <a class="account-brand" href="#tab-seat" aria-label="AKB48 Seat Memo">
+        <span class="account-brand-mark">S</span>
+        <span>
+          <strong data-i18n="appTitle">Seat Memo Maker</strong>
+          <em data-i18n="cloudSaveTitle">Tool48 Account / Cloud Save</em>
+        </span>
+      </a>
+      <div class="account-topbar-actions">
+        <button class="ghost-button account-toggle" id="accountToggleBtn" type="button" data-i18n="accountNavGuest">Account</button>
+      </div>
+      <div class="account-popover" id="accountPopover" hidden>
+        <p class="memo-status" id="cloudStatus" data-i18n="cloudLocalOnly">Login is optional. The tool still works without an account.</p>
+        <form id="cloudLoginForm" class="cloud-login-form" data-tool48-auth-logged-out>
+          <input id="cloudNicknameInput" class="control-input cloud-email-input" type="text" autocomplete="nickname" data-i18n-placeholder="cloudNicknamePlaceholder" placeholder="nickname" />
+          <input id="cloudEmailInput" class="control-input cloud-email-input" type="email" inputmode="email" autocomplete="email" data-i18n-placeholder="cloudEmailPlaceholder" placeholder="email@example.com" />
+          <input id="cloudPasswordInput" class="control-input cloud-email-input" type="password" autocomplete="current-password" minlength="6" data-i18n-placeholder="cloudPasswordPlaceholder" placeholder="6+ characters" />
+          <button class="primary-button memo-button" id="cloudSignInBtn" type="submit" data-auth-action="signin" data-i18n="cloudSignIn">Sign in</button>
+          <button class="secondary-button memo-button" id="cloudSignUpBtn" type="submit" data-auth-action="signup" data-i18n="cloudCreateAccount">Create account</button>
+        </form>
+        <div id="cloudActions" class="cloud-actions" data-tool48-auth-logged-in hidden>
+          <span class="cloud-user-pill" id="cloudUserLabel"></span>
+          <button class="ghost-button memo-button" id="cloudLogoutBtn" type="button" data-i18n="cloudSignOut">Sign out</button>
+        </div>
+        <p id="cloudMessage" class="memo-status"></p>
+      </div>
+    </header>
+
     <header class="hero apple-glass-3d hover-glow">
       <div class="hero-copy">
         <p class="eyebrow" data-i18n="eyebrow">AKB48 Theater Seat Memo</p>
@@ -102,23 +130,8 @@
           <div class="memo-section">
             <div class="memo-section-head">
               <p class="memo-title" data-i18n="cloudSaveTitle">Tool48 Account / Cloud Save</p>
-              <p class="memo-status" id="cloudStatus" data-i18n="cloudLocalOnly">Login is optional. The tool still works without an account.</p>
+              <p class="memo-status" data-i18n="cloudSaveHint">Use the account button in the top bar for cloud save.</p>
             </div>
-
-            <form id="cloudLoginForm" class="cloud-login-form" data-tool48-auth-logged-out>
-              <input id="cloudNicknameInput" class="control-input cloud-email-input" type="text" autocomplete="nickname" data-i18n-placeholder="cloudNicknamePlaceholder" placeholder="nickname" />
-              <input id="cloudEmailInput" class="control-input cloud-email-input" type="email" inputmode="email" autocomplete="email" data-i18n-placeholder="cloudEmailPlaceholder" placeholder="email@example.com" />
-              <input id="cloudPasswordInput" class="control-input cloud-email-input" type="password" autocomplete="current-password" minlength="6" data-i18n-placeholder="cloudPasswordPlaceholder" placeholder="6+ characters" />
-              <button class="primary-button memo-button" id="cloudSignInBtn" type="submit" data-auth-action="signin" data-i18n="cloudSignIn">Sign in</button>
-              <button class="secondary-button memo-button" id="cloudSignUpBtn" type="submit" data-auth-action="signup" data-i18n="cloudCreateAccount">Create account</button>
-            </form>
-
-            <div id="cloudActions" class="cloud-actions" data-tool48-auth-logged-in hidden>
-              <span class="cloud-user-pill" id="cloudUserLabel"></span>
-              <button class="ghost-button memo-button" id="cloudLogoutBtn" type="button" data-i18n="cloudSignOut">Sign out</button>
-            </div>
-
-            <p id="cloudMessage" class="memo-status"></p>
             <button class="primary-button memo-button" id="cloudSaveBtn" type="button" data-i18n="saveCloud">Save seat memo</button>
           </div>
         </div>
@@ -176,6 +189,8 @@
             <input id="lotteryDateInput" class="control-input" type="datetime-local" />
           </label>
         </div>
+
+        <p class="lottery-help" data-i18n="lotteryHelp">Click a number group to mark the next entry round. Click again to unmark it. Double click to mark your own group as 自分.</p>
 
         <div class="lottery-layout">
           <div class="lottery-range-column" id="lotteryLeftColumn"></div>
