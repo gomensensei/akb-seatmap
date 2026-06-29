@@ -221,7 +221,60 @@
           </div>
           <button class="secondary-button memo-button" id="refreshDistributionBtn" type="button" data-i18n="refreshDistribution">Refresh</button>
         </div>
-        <canvas id="distributionCanvas" class="distribution-canvas" width="960" height="520" aria-label="Lottery distribution chart"></canvas>
+
+        <div class="distribution-filters">
+          <label class="control-section">
+            <span class="field-label" data-i18n="filterYear">年份</span>
+            <select id="filterYearSelect" class="control-input"></select>
+          </label>
+          <label class="control-section">
+            <span class="field-label" data-i18n="filterMonth">月份</span>
+            <select id="filterMonthSelect" class="control-input"></select>
+          </label>
+          <label class="control-section">
+            <span class="field-label" data-i18n="filterMonthPart">月頭 / 月中 / 月尾</span>
+            <select id="filterMonthPartSelect" class="control-input"></select>
+          </label>
+          <label class="control-section">
+            <span class="field-label" data-i18n="filterWeekday">星期幾</span>
+            <select id="filterWeekdaySelect" class="control-input"></select>
+          </label>
+          <label class="control-section">
+            <span class="field-label" data-i18n="filterPerformance">公演</span>
+            <select id="filterPerformanceSelect" class="control-input"></select>
+          </label>
+          <label class="control-section">
+            <span class="field-label" data-i18n="filterPerformanceType">公演類型</span>
+            <select id="filterPerformanceTypeSelect" class="control-input"></select>
+          </label>
+          <label class="control-section">
+            <span class="field-label" data-i18n="filterSource">資料來源</span>
+            <select id="filterSourceSelect" class="control-input"></select>
+          </label>
+        </div>
+
+        <div class="distribution-grid">
+          <article class="chart-box">
+            <h3 data-i18n="myLotteryHistoryTitle">My Lottery History</h3>
+            <canvas id="myHistoryCanvas" class="distribution-canvas" width="680" height="300"></canvas>
+            <canvas id="myBucketCanvas" class="distribution-canvas compact-chart" width="680" height="220"></canvas>
+          </article>
+          <article class="chart-box">
+            <h3 data-i18n="communityStatsTitle">Anonymous Community Stats</h3>
+            <canvas id="communityMonthCanvas" class="distribution-canvas" width="680" height="280"></canvas>
+            <canvas id="communityDayCanvas" class="distribution-canvas" width="680" height="280"></canvas>
+            <canvas id="performanceAvgCanvas" class="distribution-canvas compact-chart" width="680" height="240"></canvas>
+          </article>
+          <article class="chart-box">
+            <h3 data-i18n="consecutiveTitle">Consecutive Number Analysis</h3>
+            <canvas id="gapHistogramCanvas" class="distribution-canvas" width="680" height="260"></canvas>
+            <canvas id="streakCanvas" class="distribution-canvas compact-chart" width="680" height="220"></canvas>
+          </article>
+          <article class="chart-box">
+            <h3 data-i18n="distributionOverviewTitle">Overview</h3>
+            <canvas id="distributionCanvas" class="distribution-canvas" width="680" height="320" aria-label="Lottery distribution chart"></canvas>
+          </article>
+        </div>
         <div id="distributionEmpty" class="record-empty" data-i18n="distributionEmpty">No public lottery data yet.</div>
       </div>
     </section>

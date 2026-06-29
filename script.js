@@ -64,6 +64,20 @@
     clearLotteryBtn: document.getElementById('clearLotteryBtn'),
     refreshDistributionBtn: document.getElementById('refreshDistributionBtn'),
     distributionCanvas: document.getElementById('distributionCanvas'),
+    myHistoryCanvas: document.getElementById('myHistoryCanvas'),
+    myBucketCanvas: document.getElementById('myBucketCanvas'),
+    communityMonthCanvas: document.getElementById('communityMonthCanvas'),
+    communityDayCanvas: document.getElementById('communityDayCanvas'),
+    performanceAvgCanvas: document.getElementById('performanceAvgCanvas'),
+    gapHistogramCanvas: document.getElementById('gapHistogramCanvas'),
+    streakCanvas: document.getElementById('streakCanvas'),
+    filterYearSelect: document.getElementById('filterYearSelect'),
+    filterMonthSelect: document.getElementById('filterMonthSelect'),
+    filterMonthPartSelect: document.getElementById('filterMonthPartSelect'),
+    filterWeekdaySelect: document.getElementById('filterWeekdaySelect'),
+    filterPerformanceSelect: document.getElementById('filterPerformanceSelect'),
+    filterPerformanceTypeSelect: document.getElementById('filterPerformanceTypeSelect'),
+    filterSourceSelect: document.getElementById('filterSourceSelect'),
     distributionEmpty: document.getElementById('distributionEmpty'),
     toast: document.getElementById('toast')
   };
@@ -93,6 +107,7 @@
     buildPerformanceOptions();
     buildTourOptions();
     buildLotteryPerformanceOptions();
+    buildDistributionFilters();
     renderLotteryRanges();
     renderOverlay();
     bindEvents();
@@ -183,6 +198,67 @@
     if (els.lotteryDateInput) els.lotteryDateInput.value = state.eventDate;
   }
 
+  function buildDistributionFilters() {
+    setSelectOptions(els.filterYearSelect, [
+      ['', t('filterAll')],
+      ...Array.from({ length: 8 }, (_, index) => {
+        const year = String(new Date().getFullYear() - index);
+        return [year, year];
+      })
+    ]);
+    setSelectOptions(els.filterMonthSelect, [
+      ['', t('filterAll')],
+      ...Array.from({ length: 12 }, (_, index) => {
+        const value = String(index + 1).padStart(2, '0');
+        return [value, value];
+      })
+    ]);
+    setSelectOptions(els.filterMonthPartSelect, [
+      ['', t('filterAll')],
+      ['early', t('filterEarlyMonth')],
+      ['mid', t('filterMidMonth')],
+      ['late', t('filterLateMonth')]
+    ]);
+    setSelectOptions(els.filterWeekdaySelect, [
+      ['', t('filterAll')],
+      ['0', t('weekdaySun')],
+      ['1', t('weekdayMon')],
+      ['2', t('weekdayTue')],
+      ['3', t('weekdayWed')],
+      ['4', t('weekdayThu')],
+      ['5', t('weekdayFri')],
+      ['6', t('weekdaySat')]
+    ]);
+    setSelectOptions(els.filterPerformanceSelect, [
+      ['', t('filterAll')],
+      ...SEATMAP_DATA.performances.map(performance => [performance.id, performance.label])
+    ]);
+    setSelectOptions(els.filterPerformanceTypeSelect, [
+      ['', t('filterAll')],
+      ['normal', t('performanceTypeNormal')],
+      ['birthday', t('performanceTypeBirthday')],
+      ['special', t('performanceTypeSpecial')]
+    ]);
+    setSelectOptions(els.filterSourceSelect, [
+      ['all', t('filterSourceAll')],
+      ['mine', t('filterSourceMine')],
+      ['community', t('filterSourceCommunity')]
+    ]);
+  }
+
+  function setSelectOptions(select, entries) {
+    if (!select) return;
+    const previous = select.value;
+    select.innerHTML = '';
+    entries.forEach(([value, label]) => {
+      const option = document.createElement('option');
+      option.value = value;
+      option.textContent = label;
+      select.appendChild(option);
+    });
+    if (entries.some(([value]) => value === previous)) select.value = previous;
+  }
+
   function buildTourOptions() {
     if (!els.tourSelect) return;
     const currentValue = state.tourRound;
@@ -235,6 +311,8 @@
     els.downloadLotteryBtn?.addEventListener('click', downloadLotteryImage);
     els.clearLotteryBtn?.addEventListener('click', clearLotteryRecord);
     els.refreshDistributionBtn?.addEventListener('click', () => renderDistributionChart());
+    [els.filterYearSelect, els.filterMonthSelect, els.filterMonthPartSelect, els.filterWeekdaySelect, els.filterPerformanceSelect, els.filterPerformanceTypeSelect, els.filterSourceSelect]
+      .forEach(select => select?.addEventListener('change', () => renderDistributionChart()));
     if (els.zoomOutBtn) els.zoomOutBtn.addEventListener('click', () => setMapZoom(state.mapZoom - ZOOM_STEP));
     if (els.zoomInBtn) els.zoomInBtn.addEventListener('click', () => setMapZoom(state.mapZoom + ZOOM_STEP));
     window.addEventListener('resize', () => {
@@ -252,6 +330,7 @@
     document.querySelectorAll('[data-i18n-aria-label]').forEach(node => { node.setAttribute('aria-label', t(node.dataset.i18nAriaLabel)); });
     buildTourOptions();
     buildLotteryPerformanceOptions();
+    buildDistributionFilters();
     renderLotteryRanges();
     renderCloudRecordsTable();
     renderDistributionChart();
@@ -758,17 +837,32 @@
 
   async function writeCloudRow(action, row, recordId) {
     let result = await sendCloudRow(action, row, recordId);
-    if (result.error && row.performance_id && isPerformanceIdError(result.error)) {
-      const retryRow = { ...row, performance_id: null };
-      result = await sendCloudRow(action, retryRow, recordId);
+    if (result.error) {
+      const retryRow = toMinimalCloudRow(row, action);
+      const retryResult = await sendCloudRow(action, retryRow, recordId);
+      if (!retryResult.error) result = retryResult;
     }
     if (result.error) {
       console.warn(result.error);
-      setCloudMessage(`${t('cloudActionFailed')} ${result.error.message || ''}`.trim());
+      setCloudMessage(formatCloudError(result.error));
       showToast(t('cloudActionFailed'));
       return null;
     }
     return result.data;
+  }
+
+  function toMinimalCloudRow(row, action) {
+    const minimal = { payload: row.payload };
+    if (action !== 'update') minimal.user_id = row.user_id;
+    return minimal;
+  }
+
+  function formatCloudError(error) {
+    const parts = [t('cloudActionFailed')];
+    if (error.code) parts.push(`[${error.code}]`);
+    if (error.message) parts.push(error.message);
+    if (error.details) parts.push(error.details);
+    return parts.join(' ');
   }
 
   function sendCloudRow(action, row, recordId) {
@@ -1038,18 +1132,300 @@
   }
 
   function renderDistributionChart() {
-    if (!els.distributionCanvas) return;
-    const records = [
-      ...cloud.publicLotteryRecords,
-      ...cloud.records.filter(record => record.payload?.type === 'lottery-entry' && record.public_consent)
-    ];
-    const localEntries = lotteryState.entries.length && els.lotteryPublicConsent?.checked ? [{ payload: buildLotteryPayload(), public_consent: true }] : [];
-    const source = records.length ? records : localEntries;
+    const source = getFilteredLotteryRecords();
     if (els.distributionEmpty) els.distributionEmpty.hidden = source.length > 0;
+    drawMyHistoryChart(source.filter(record => record.scope === 'mine'));
+    drawBucketChart(els.myBucketCanvas, source.filter(record => record.scope === 'mine'), t('myBucketTitle'));
+    drawMonthHeatmap(source.filter(record => record.scope === 'community'));
+    drawDayHeatmap(source.filter(record => record.scope === 'community'));
+    drawPerformanceAverageChart(source.filter(record => record.scope === 'community'));
+    drawGapHistogram(source);
+    drawStreakChart(source);
     drawDistributionChart(source);
   }
 
+  function getFilteredLotteryRecords() {
+    const mine = [
+      ...cloud.records.filter(record => record.payload?.type === 'lottery-entry'),
+      ...(lotteryState.entries.length ? [{ id: 'current', payload: buildLotteryPayload(), public_consent: Boolean(els.lotteryPublicConsent?.checked), event_date: extractDateOnly(els.lotteryDateInput?.value), performance_title: getLotteryPerformance()?.label || '' }] : [])
+    ].map(record => normalizeLotteryRecord(record, 'mine'));
+    const community = cloud.publicLotteryRecords.map(record => normalizeLotteryRecord(record, 'community'));
+    const sourceMode = els.filterSourceSelect?.value || 'all';
+    return [...(sourceMode !== 'community' ? mine : []), ...(sourceMode !== 'mine' ? community : [])].filter(record => record.entries.length && passesDistributionFilters(record));
+  }
+
+  function normalizeLotteryRecord(record, scope) {
+    const payload = record.payload || {};
+    const eventDate = extractDateOnly(record.event_date || payload.eventDate || payload.savedAt);
+    return {
+      id: record.id,
+      scope,
+      eventDate,
+      date: eventDate ? new Date(`${eventDate}T00:00:00`) : null,
+      performanceId: payload.performance?.id || '',
+      performanceTitle: record.performance_title || payload.performance?.label || '',
+      performanceType: detectPerformanceType(record.performance_title || payload.performance?.label || ''),
+      entries: (payload.entries || []).filter(entry => Number.isFinite(Number(entry.order))).map(entry => ({ ...entry, order: Number(entry.order), start: parseRangeStart(entry.range) }))
+    };
+  }
+
+  function passesDistributionFilters(record) {
+    const date = record.date;
+    const year = els.filterYearSelect?.value || '';
+    const month = els.filterMonthSelect?.value || '';
+    const monthPart = els.filterMonthPartSelect?.value || '';
+    const weekday = els.filterWeekdaySelect?.value || '';
+    const performance = els.filterPerformanceSelect?.value || '';
+    const performanceType = els.filterPerformanceTypeSelect?.value || '';
+    if (year && (!date || String(date.getFullYear()) !== year)) return false;
+    if (month && (!date || String(date.getMonth() + 1).padStart(2, '0') !== month)) return false;
+    if (weekday && (!date || String(date.getDay()) !== weekday)) return false;
+    if (monthPart && getMonthPart(date) !== monthPart) return false;
+    if (performance && record.performanceId !== performance) return false;
+    if (performanceType && record.performanceType !== performanceType) return false;
+    return true;
+  }
+
+  function detectPerformanceType(title) {
+    if (/生誕|birthday/i.test(title)) return 'birthday';
+    if (/特別|special|周年|卒業/i.test(title)) return 'special';
+    return 'normal';
+  }
+
+  function getMonthPart(date) {
+    if (!date) return '';
+    const day = date.getDate();
+    if (day <= 10) return 'early';
+    if (day <= 20) return 'mid';
+    return 'late';
+  }
+
+  function drawMyHistoryChart(records) {
+    if (!els.myHistoryCanvas) return;
+    const points = records.map(record => ({ label: record.eventDate || '-', value: getRecordSelfOrder(record) })).filter(point => point.value);
+    drawLineChart(els.myHistoryCanvas, points, t('myHistoryLineTitle'));
+  }
+
+  function drawBucketChart(canvas, records, title) {
+    if (!canvas) return;
+    const counts = { low: 0, mid: 0, high: 0 };
+    records.forEach(record => record.entries.forEach(entry => { counts[getRangeGroup(entry.range)] += 1; }));
+    drawSimpleBars(canvas, [
+      { label: t('distLowNo'), value: counts.low },
+      { label: t('distMidNo'), value: counts.mid },
+      { label: t('distHighNo'), value: counts.high }
+    ], title);
+  }
+
+  function drawMonthHeatmap(records) {
+    drawNoHeatmap(els.communityMonthCanvas, records, 'month', t('monthNoHeatmapTitle'));
+  }
+
+  function drawDayHeatmap(records) {
+    drawNoHeatmap(els.communityDayCanvas, records, 'day', t('dayNoHeatmapTitle'));
+  }
+
+  function drawPerformanceAverageChart(records) {
+    if (!els.performanceAvgCanvas) return;
+    const grouped = {};
+    records.forEach(record => {
+      const key = record.performanceTitle || t('performance');
+      if (!grouped[key]) grouped[key] = [];
+      grouped[key].push(...record.entries.map(entry => entry.order));
+    });
+    const rows = Object.entries(grouped).map(([label, values]) => ({ label, value: average(values) || 0 })).sort((a, b) => a.value - b.value).slice(0, 8);
+    drawSimpleBars(els.performanceAvgCanvas, rows, t('performanceAvgTitle'), true);
+  }
+
+  function drawGapHistogram(records) {
+    if (!els.gapHistogramCanvas) return;
+    const gaps = {};
+    records.forEach(record => getRecordGaps(record).forEach(gap => { gaps[gap] = (gaps[gap] || 0) + 1; }));
+    const rows = Object.entries(gaps).sort((a, b) => Number(a[0]) - Number(b[0])).map(([gap, value]) => ({ label: gap, value }));
+    drawSimpleBars(els.gapHistogramCanvas, rows.slice(0, 12), t('gapHistogramTitle'));
+  }
+
+  function drawStreakChart(records) {
+    if (!els.streakCanvas) return;
+    const totals = { two: 0, three: 0, four: 0 };
+    records.forEach(record => {
+      const streaks = countRecordStreaks(record);
+      totals.two += streaks.two;
+      totals.three += streaks.three;
+      totals.four += streaks.four;
+    });
+    drawSimpleBars(els.streakCanvas, [
+      { label: '2', value: totals.two },
+      { label: '3', value: totals.three },
+      { label: '4+', value: totals.four }
+    ], t('streakTitle'));
+  }
+
+  function getRecordSelfOrder(record) {
+    const self = record.entries.find(entry => entry.isSelf);
+    return self?.order || record.entries[0]?.order || null;
+  }
+
+  function getRecordGaps(record) {
+    const ordered = record.entries.slice().sort((a, b) => a.order - b.order);
+    const gaps = [];
+    for (let i = 1; i < ordered.length; i += 1) {
+      gaps.push(Math.abs(ordered[i].start - ordered[i - 1].start));
+    }
+    return gaps;
+  }
+
+  function countRecordStreaks(record) {
+    const starts = record.entries.map(entry => entry.start).filter(Boolean).sort((a, b) => a - b);
+    let current = 1;
+    const totals = { two: 0, three: 0, four: 0 };
+    for (let i = 1; i <= starts.length; i += 1) {
+      if (starts[i] - starts[i - 1] === 10 || (starts[i - 1] === 1 && starts[i] === 10)) current += 1;
+      else {
+        if (current === 2) totals.two += 1;
+        if (current === 3) totals.three += 1;
+        if (current >= 4) totals.four += 1;
+        current = 1;
+      }
+    }
+    return totals;
+  }
+
+  function drawLineChart(canvas, points, title) {
+    const ctx = setupCanvas(canvas);
+    const width = canvas.width;
+    const height = canvas.height;
+    drawChartTitle(ctx, title);
+    if (!points.length) return drawEmptyChart(ctx, width, height);
+    const max = Math.max(1, ...points.map(point => point.value));
+    const left = 52;
+    const top = 52;
+    const bottom = height - 46;
+    const usableW = width - left - 28;
+    const usableH = bottom - top;
+    ctx.strokeStyle = '#e5e7eb';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(left, top);
+    ctx.lineTo(left, bottom);
+    ctx.lineTo(width - 20, bottom);
+    ctx.stroke();
+    ctx.strokeStyle = '#ff007f';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    points.forEach((point, index) => {
+      const x = left + (points.length === 1 ? usableW / 2 : (usableW / (points.length - 1)) * index);
+      const y = bottom - (point.value / max) * usableH;
+      if (index === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+    points.forEach((point, index) => {
+      const x = left + (points.length === 1 ? usableW / 2 : (usableW / (points.length - 1)) * index);
+      const y = bottom - (point.value / max) * usableH;
+      ctx.fillStyle = '#fff';
+      ctx.beginPath();
+      ctx.arc(x, y, 6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#ff007f';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+    });
+  }
+
+  function drawSimpleBars(canvas, rows, title, lowerIsBetter) {
+    const ctx = setupCanvas(canvas);
+    const width = canvas.width;
+    const height = canvas.height;
+    drawChartTitle(ctx, title);
+    const filtered = rows.filter(row => Number.isFinite(row.value) && row.value > 0);
+    if (!filtered.length) return drawEmptyChart(ctx, width, height);
+    const max = Math.max(1, ...filtered.map(row => row.value));
+    const left = 42;
+    const bottom = height - 40;
+    const top = 48;
+    const barW = Math.max(24, (width - left - 30) / filtered.length - 12);
+    filtered.forEach((row, index) => {
+      const x = left + index * (barW + 12);
+      const h = Math.max(8, (row.value / max) * (bottom - top));
+      const y = bottom - h;
+      const grad = ctx.createLinearGradient(0, y, 0, bottom);
+      grad.addColorStop(0, lowerIsBetter ? '#00c9e8' : '#ff007f');
+      grad.addColorStop(1, '#ff8ec4');
+      ctx.fillStyle = grad;
+      roundRect(ctx, x, y, barW, h, 9);
+      ctx.fill();
+      ctx.fillStyle = '#1b2330';
+      ctx.font = '800 12px "Noto Sans JP", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(Number.isInteger(row.value) ? row.value : row.value.toFixed(1), x + barW / 2, y - 8);
+      ctx.fillText(shortenText(row.label, 9), x + barW / 2, bottom + 18);
+      ctx.textAlign = 'left';
+    });
+  }
+
+  function drawNoHeatmap(canvas, records, mode, title) {
+    if (!canvas) return;
+    const ctx = setupCanvas(canvas);
+    const width = canvas.width;
+    const height = canvas.height;
+    drawChartTitle(ctx, title);
+    if (!records.length) return drawEmptyChart(ctx, width, height);
+    const cols = mode === 'month'
+      ? Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, '0'))
+      : Array.from({ length: 31 }, (_, i) => String(i + 1));
+    const groups = ['low', 'mid', 'high'];
+    const matrix = {};
+    cols.forEach(col => { matrix[col] = { low: [], mid: [], high: [] }; });
+    records.forEach(record => {
+      if (!record.date) return;
+      const col = mode === 'month' ? String(record.date.getMonth() + 1).padStart(2, '0') : String(record.date.getDate());
+      record.entries.forEach(entry => matrix[col]?.[getRangeGroup(entry.range)]?.push(entry.order));
+    });
+    const cellW = (width - 86) / cols.length;
+    const cellH = 42;
+    groups.forEach((group, row) => {
+      ctx.fillStyle = '#667085';
+      ctx.font = '800 12px "Noto Sans JP", sans-serif';
+      ctx.fillText(group, 22, 74 + row * cellH);
+      cols.forEach((col, index) => {
+        const avg = average(matrix[col][group]);
+        ctx.fillStyle = heatColor(avg, 20);
+        roundRect(ctx, 64 + index * cellW, 54 + row * cellH, Math.max(8, cellW - 3), cellH - 7, 5);
+        ctx.fill();
+      });
+    });
+  }
+
+  function setupCanvas(canvas) {
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    return ctx;
+  }
+
+  function drawChartTitle(ctx, title) {
+    ctx.fillStyle = '#1b2330';
+    ctx.font = '900 18px "Noto Sans JP", sans-serif';
+    ctx.fillText(title, 22, 30);
+  }
+
+  function drawEmptyChart(ctx, width, height) {
+    ctx.fillStyle = '#667085';
+    ctx.font = '800 15px "Noto Sans JP", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(t('distributionEmpty'), width / 2, height / 2);
+    ctx.textAlign = 'left';
+  }
+
+  function shortenText(value, max) {
+    const text = String(value || '');
+    return text.length > max ? `${text.slice(0, max - 1)}…` : text;
+  }
+
   function drawDistributionChart(records) {
+    if (!els.distributionCanvas) return;
     const canvas = els.distributionCanvas;
     const ctx = canvas.getContext('2d');
     const width = canvas.width;
@@ -1063,18 +1439,17 @@
     let consecutivePairs = 0;
     let possiblePairs = 0;
     records.forEach(record => {
-      const entries = (record.payload?.entries || []).filter(entry => Number.isFinite(Number(entry.order)));
-      entries.forEach(entry => {
+      record.entries.forEach(entry => {
         const bucket = stats.get(entry.range);
         if (bucket) {
           bucket.totalOrder += Number(entry.order);
           bucket.count += 1;
         }
-        const month = String(record.event_date || record.payload?.eventDate || '').slice(0, 7) || 'unknown';
+        const month = String(record.eventDate || '').slice(0, 7) || 'unknown';
         if (!monthly[month]) monthly[month] = { low: [], mid: [], high: [] };
         monthly[month][getRangeGroup(entry.range)].push(Number(entry.order));
       });
-      const byStart = entries.slice().sort((a, b) => parseRangeStart(a.range) - parseRangeStart(b.range));
+      const byStart = record.entries.slice().sort((a, b) => a.start - b.start);
       for (let i = 1; i < byStart.length; i += 1) {
         possiblePairs += 1;
         if (Math.abs(Number(byStart[i].order) - Number(byStart[i - 1].order)) === 1) consecutivePairs += 1;
