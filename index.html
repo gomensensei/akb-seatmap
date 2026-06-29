@@ -254,25 +254,32 @@
         </div>
 
         <div class="distribution-grid">
-          <article class="chart-box">
-            <h3 data-i18n="myLotteryHistoryTitle">My Lottery History</h3>
-            <canvas id="myHistoryCanvas" class="distribution-canvas" width="680" height="300"></canvas>
-            <canvas id="myBucketCanvas" class="distribution-canvas compact-chart" width="680" height="220"></canvas>
+          <article class="chart-box chart-box-wide">
+            <h3 data-i18n="rangeOrderHeatmapTitle">Range x called order heatmap</h3>
+            <p class="chart-note" data-i18n="rangeOrderHeatmapNote">Darker cells mean the range appears more often at that called order.</p>
+            <canvas id="distributionCanvas" class="distribution-canvas" width="980" height="560" aria-label="Lottery range and order heatmap"></canvas>
           </article>
           <article class="chart-box">
-            <h3 data-i18n="communityStatsTitle">Anonymous Community Stats</h3>
-            <canvas id="communityMonthCanvas" class="distribution-canvas" width="680" height="280"></canvas>
-            <canvas id="communityDayCanvas" class="distribution-canvas" width="680" height="280"></canvas>
-            <canvas id="performanceAvgCanvas" class="distribution-canvas compact-chart" width="680" height="240"></canvas>
+            <h3 data-i18n="averageOrderTitle">Average called order</h3>
+            <canvas id="performanceAvgCanvas" class="distribution-canvas" width="720" height="320"></canvas>
           </article>
           <article class="chart-box">
-            <h3 data-i18n="consecutiveTitle">Consecutive Number Analysis</h3>
-            <canvas id="gapHistogramCanvas" class="distribution-canvas" width="680" height="260"></canvas>
+            <h3 data-i18n="blockGroupAverageTitle">Small / middle / large blocks</h3>
+            <canvas id="myBucketCanvas" class="distribution-canvas compact-chart" width="680" height="240"></canvas>
+          </article>
+          <article class="chart-box">
+            <h3 data-i18n="calendarBlockTitle">Day-of-month x block segment</h3>
+            <canvas id="communityDayCanvas" class="distribution-canvas" width="680" height="260"></canvas>
+            <canvas id="communityMonthCanvas" class="distribution-canvas compact-chart" width="680" height="240"></canvas>
+          </article>
+          <article class="chart-box">
+            <h3 data-i18n="consecutiveTitle">Consecutive number analysis</h3>
+            <canvas id="gapHistogramCanvas" class="distribution-canvas" width="680" height="250"></canvas>
             <canvas id="streakCanvas" class="distribution-canvas compact-chart" width="680" height="220"></canvas>
           </article>
           <article class="chart-box">
-            <h3 data-i18n="distributionOverviewTitle">Overview</h3>
-            <canvas id="distributionCanvas" class="distribution-canvas" width="680" height="320" aria-label="Lottery distribution chart"></canvas>
+            <h3 data-i18n="selfLandingTitle">My landing analysis</h3>
+            <canvas id="myHistoryCanvas" class="distribution-canvas" width="680" height="330"></canvas>
           </article>
         </div>
         <div id="distributionEmpty" class="record-empty" data-i18n="distributionEmpty">No public lottery data yet.</div>

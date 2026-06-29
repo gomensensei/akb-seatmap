@@ -1134,14 +1134,14 @@
   function renderDistributionChart() {
     const source = getFilteredLotteryRecords();
     if (els.distributionEmpty) els.distributionEmpty.hidden = source.length > 0;
-    drawMyHistoryChart(source.filter(record => record.scope === 'mine'));
-    drawBucketChart(els.myBucketCanvas, source.filter(record => record.scope === 'mine'), t('myBucketTitle'));
-    drawMonthHeatmap(source.filter(record => record.scope === 'community'));
-    drawDayHeatmap(source.filter(record => record.scope === 'community'));
-    drawPerformanceAverageChart(source.filter(record => record.scope === 'community'));
+    drawDistributionChart(source);
+    drawRangeAverageChart(source);
+    drawBlockGroupAverageChart(source);
+    drawBlockTimeHeatmap(els.communityDayCanvas, source, 'day', t('dayNoHeatmapTitle'));
+    drawBlockTimeHeatmap(els.communityMonthCanvas, source, 'month', t('monthNoHeatmapTitle'));
     drawGapHistogram(source);
     drawStreakChart(source);
-    drawDistributionChart(source);
+    drawSelfLandingChart(source.filter(record => record.scope === 'mine'), source);
   }
 
   function getFilteredLotteryRecords() {
@@ -1165,7 +1165,9 @@
       performanceId: payload.performance?.id || '',
       performanceTitle: record.performance_title || payload.performance?.label || '',
       performanceType: detectPerformanceType(record.performance_title || payload.performance?.label || ''),
-      entries: (payload.entries || []).filter(entry => Number.isFinite(Number(entry.order))).map(entry => ({ ...entry, order: Number(entry.order), start: parseRangeStart(entry.range) }))
+      entries: (payload.entries || [])
+        .map(entry => ({ ...entry, order: Number(entry.order), start: parseRangeStart(entry.range), rangeIndex: getLotteryRangeIndex(entry.range) }))
+        .filter(entry => Number.isFinite(entry.order) && Number.isFinite(entry.rangeIndex))
     };
   }
 
@@ -1557,6 +1559,440 @@
     const green = Math.round(238 - good * 120);
     const blue = Math.round(246 + good * 5);
     return `rgb(${red}, ${green}, ${blue})`;
+  }
+
+  function drawRangeAverageChart(records) {
+    if (!els.performanceAvgCanvas) return;
+    const canvas = els.performanceAvgCanvas;
+    const ctx = setupCanvas(canvas);
+    const width = canvas.width;
+    const height = canvas.height;
+    const ranges = getLotteryRanges();
+    drawChartTitle(ctx, t('averageOrderTitle'));
+    if (!records.length) return drawEmptyChart(ctx, width, height);
+    const values = ranges.map(range => {
+      const orders = records.flatMap(record => record.entries.filter(entry => entry.range === range.key).map(entry => entry.order));
+      return { ...range, value: average(orders), count: orders.length };
+    });
+    if (!values.some(item => item.value)) return drawEmptyChart(ctx, width, height);
+    const max = Math.max(1, ...values.map(item => item.value || 0));
+    const left = 46;
+    const top = 54;
+    const bottom = height - 72;
+    const barGap = 5;
+    const barW = Math.max(8, (width - left - 28) / values.length - barGap);
+    ctx.strokeStyle = '#e5e7eb';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(left, top);
+    ctx.lineTo(left, bottom);
+    ctx.lineTo(width - 18, bottom);
+    ctx.stroke();
+    values.forEach((item, index) => {
+      if (!item.value) return;
+      const x = left + index * (barW + barGap);
+      const h = Math.max(6, (item.value / max) * (bottom - top));
+      const y = bottom - h;
+      ctx.fillStyle = heatColor(item.value, max);
+      roundRect(ctx, x, y, barW, h, 6);
+      ctx.fill();
+      if (index % 3 === 0 || index === values.length - 1) {
+        ctx.fillStyle = '#667085';
+        ctx.font = '800 10px "Noto Sans JP", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.save();
+        ctx.translate(x + barW / 2, bottom + 18);
+        ctx.rotate(-Math.PI / 4);
+        ctx.fillText(item.label, 0, 0);
+        ctx.restore();
+      }
+    });
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#667085';
+    ctx.font = '800 11px "Noto Sans JP", sans-serif';
+    ctx.fillText(t('averageOrderHint'), left, height - 18);
+  }
+
+  function drawBlockGroupAverageChart(records) {
+    const rows = ['low', 'mid', 'high'].map(group => {
+      const values = records.flatMap(record => record.entries.filter(entry => getRangeGroup(entry.range) === group).map(entry => entry.order));
+      return { label: getRangeGroupLabel(group), value: average(values) || 0 };
+    });
+    drawSimpleBars(els.myBucketCanvas, rows, t('blockGroupAverageTitle'), {
+      lowerIsBetter: true,
+      valueFormatter: value => formatAvgOrder(value),
+      maxLabelLength: 14
+    });
+  }
+
+  function drawBlockTimeHeatmap(canvas, records, mode, title) {
+    if (!canvas) return;
+    const ctx = setupCanvas(canvas);
+    const width = canvas.width;
+    const height = canvas.height;
+    drawChartTitle(ctx, title);
+    if (!records.length) return drawEmptyChart(ctx, width, height);
+    const cols = mode === 'month'
+      ? Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, '0'))
+      : Array.from({ length: 31 }, (_, i) => String(i + 1));
+    const groups = ['low', 'mid', 'high'];
+    const matrix = {};
+    cols.forEach(col => { matrix[col] = { low: [], mid: [], high: [] }; });
+    records.forEach(record => {
+      if (!record.date) return;
+      const col = mode === 'month' ? String(record.date.getMonth() + 1).padStart(2, '0') : String(record.date.getDate());
+      record.entries.forEach(entry => matrix[col]?.[getRangeGroup(entry.range)]?.push(entry.order));
+    });
+    const maxAvg = Math.max(1, ...cols.flatMap(col => groups.map(group => average(matrix[col][group]) || 0)));
+    const left = 82;
+    const top = 54;
+    const rowH = 44;
+    const cellW = (width - left - 24) / cols.length;
+    groups.forEach((group, row) => {
+      const y = top + row * rowH;
+      ctx.fillStyle = '#667085';
+      ctx.font = '800 12px "Noto Sans JP", sans-serif';
+      ctx.fillText(getRangeGroupLabel(group), 16, y + 27);
+      cols.forEach((col, index) => {
+        const avg = average(matrix[col][group]);
+        ctx.fillStyle = heatColor(avg, maxAvg);
+        roundRect(ctx, left + index * cellW, y, Math.max(5, cellW - 3), rowH - 8, 5);
+        ctx.fill();
+      });
+    });
+    ctx.fillStyle = '#667085';
+    ctx.font = '800 10px "Noto Sans JP", sans-serif';
+    ctx.textAlign = 'center';
+    cols.forEach((col, index) => {
+      if (mode === 'day' && index % 5 !== 0 && index !== cols.length - 1) return;
+      ctx.fillText(String(Number(col)), left + index * cellW + cellW / 2, height - 22);
+    });
+    ctx.textAlign = 'left';
+  }
+
+  function drawGapHistogram(records) {
+    if (!els.gapHistogramCanvas) return;
+    const buckets = { adjacent: 0, twoThree: 0, fourFive: 0, sixPlus: 0 };
+    records.forEach(record => {
+      getRecordGapBuckets(record).forEach(bucket => { buckets[bucket] += 1; });
+    });
+    drawSimpleBars(els.gapHistogramCanvas, [
+      { label: t('gapAdjacent'), value: buckets.adjacent },
+      { label: t('gapTwoThree'), value: buckets.twoThree },
+      { label: t('gapFourFive'), value: buckets.fourFive },
+      { label: t('gapSixPlus'), value: buckets.sixPlus }
+    ], t('gapHistogramTitle'));
+  }
+
+  function drawStreakChart(records) {
+    if (!els.streakCanvas) return;
+    const totals = { two: 0, three: 0, four: 0 };
+    records.forEach(record => {
+      const streaks = countRecordStreaks(record);
+      totals.two += streaks.two;
+      totals.three += streaks.three;
+      totals.four += streaks.four;
+    });
+    drawSimpleBars(els.streakCanvas, [
+      { label: t('streakTwo'), value: totals.two },
+      { label: t('streakThree'), value: totals.three },
+      { label: t('streakFourPlus'), value: totals.four }
+    ], t('streakTitle'));
+  }
+
+  function drawSelfLandingChart(mineRecords, allRecords) {
+    if (!els.myHistoryCanvas) return;
+    const canvas = els.myHistoryCanvas;
+    const ctx = setupCanvas(canvas);
+    const width = canvas.width;
+    const height = canvas.height;
+    drawChartTitle(ctx, t('selfLandingTitle'));
+    const selfEntries = mineRecords.flatMap(record => record.entries.filter(entry => entry.isSelf));
+    if (!selfEntries.length) return drawEmptyChart(ctx, width, height);
+    const allSelfEntries = allRecords.flatMap(record => record.entries.filter(entry => entry.isSelf));
+    const comparisonEntries = allSelfEntries.length ? allSelfEntries : allRecords.flatMap(record => record.entries);
+    const selfAvg = average(selfEntries.map(entry => entry.order));
+    const allAvg = average(comparisonEntries.map(entry => entry.order));
+    const topRange = getTopRangeLabel(selfEntries);
+    const cards = [
+      [t('selfAverageLabel'), formatAvgOrder(selfAvg)],
+      [t('communityAverageLabel'), formatAvgOrder(allAvg)],
+      [t('selfTopRangeLabel'), topRange || '-']
+    ];
+    cards.forEach(([label, value], index) => {
+      const x = 22 + index * ((width - 58) / 3);
+      const cardW = (width - 78) / 3;
+      ctx.fillStyle = index === 0 ? '#fff2f8' : '#f8fbff';
+      roundRect(ctx, x, 52, cardW, 72, 14);
+      ctx.fill();
+      ctx.fillStyle = '#667085';
+      ctx.font = '800 11px "Noto Sans JP", sans-serif';
+      ctx.fillText(label, x + 14, 80);
+      ctx.fillStyle = '#1b2330';
+      ctx.font = '900 21px "Noto Sans JP", sans-serif';
+      ctx.fillText(shortenText(value, 12), x + 14, 110);
+    });
+
+    const rangeCounts = countEntriesByRange(selfEntries).slice(0, 6);
+    const maxCount = Math.max(1, ...rangeCounts.map(item => item.value));
+    ctx.fillStyle = '#1b2330';
+    ctx.font = '900 13px "Noto Sans JP", sans-serif';
+    ctx.fillText(t('selfFrequentRangeTitle'), 22, 154);
+    rangeCounts.forEach((item, index) => {
+      const y = 174 + index * 22;
+      const w = (item.value / maxCount) * 210;
+      ctx.fillStyle = '#ff8ec4';
+      roundRect(ctx, 86, y - 13, Math.max(8, w), 14, 7);
+      ctx.fill();
+      ctx.fillStyle = '#667085';
+      ctx.font = '800 11px "Noto Sans JP", sans-serif';
+      ctx.fillText(item.label, 22, y);
+      ctx.fillStyle = '#1b2330';
+      ctx.fillText(String(item.value), 304, y);
+    });
+
+    const mineRates = getGroupRates(selfEntries);
+    const allRates = getGroupRates(comparisonEntries);
+    ctx.fillStyle = '#1b2330';
+    ctx.font = '900 13px "Noto Sans JP", sans-serif';
+    ctx.fillText(t('selfVsAllTitle'), 360, 154);
+    ['low', 'mid', 'high'].forEach((group, index) => {
+      const y = 180 + index * 44;
+      ctx.fillStyle = '#667085';
+      ctx.font = '800 11px "Noto Sans JP", sans-serif';
+      ctx.fillText(getRangeGroupLabel(group), 360, y);
+      drawRateBar(ctx, 430, y - 14, 170, mineRates[group], '#ff007f');
+      drawRateBar(ctx, 430, y + 4, 170, allRates[group], '#00a7c2');
+      ctx.fillStyle = '#1b2330';
+      ctx.fillText(formatPercent(mineRates[group]), 608, y - 2);
+      ctx.fillText(formatPercent(allRates[group]), 608, y + 16);
+    });
+  }
+
+  function drawRateBar(ctx, x, y, width, rate, color) {
+    ctx.fillStyle = '#eef2f7';
+    roundRect(ctx, x, y, width, 11, 6);
+    ctx.fill();
+    ctx.fillStyle = color;
+    roundRect(ctx, x, y, Math.max(3, width * rate), 11, 6);
+    ctx.fill();
+  }
+
+  function drawDistributionChart(records) {
+    if (!els.distributionCanvas) return;
+    const canvas = els.distributionCanvas;
+    const ctx = setupCanvas(canvas);
+    const width = canvas.width;
+    const height = canvas.height;
+    const ranges = getLotteryRanges();
+    drawChartTitle(ctx, t('rangeOrderHeatmapTitle'));
+    if (!records.length) return drawEmptyChart(ctx, width, height);
+
+    const maxOrder = Math.max(1, ...records.flatMap(record => record.entries.map(entry => entry.order)));
+    const rowCount = Math.min(Math.max(maxOrder, 1), ranges.length);
+    const matrix = Array.from({ length: rowCount }, () => Array.from({ length: ranges.length }, () => 0));
+    records.forEach(record => {
+      record.entries.forEach(entry => {
+        if (entry.order >= 1 && entry.order <= rowCount && entry.rangeIndex >= 0) {
+          matrix[entry.order - 1][entry.rangeIndex] += 1;
+        }
+      });
+    });
+    const maxCount = Math.max(1, ...matrix.flat());
+    const left = 72;
+    const top = 62;
+    const right = 28;
+    const bottom = 88;
+    const cellW = (width - left - right) / ranges.length;
+    const cellH = (height - top - bottom) / rowCount;
+
+    ctx.fillStyle = '#667085';
+    ctx.font = '800 12px "Noto Sans JP", sans-serif';
+    ctx.fillText(t('calledOrderAxis'), 18, top - 12);
+    ctx.textAlign = 'right';
+    for (let row = 0; row < rowCount; row += 1) {
+      const y = top + row * cellH;
+      if (row === 0 || (row + 1) % 5 === 0 || row === rowCount - 1) {
+        ctx.fillText(`${row + 1}`, left - 10, y + cellH * .65);
+      }
+      for (let col = 0; col < ranges.length; col += 1) {
+        const x = left + col * cellW;
+        ctx.fillStyle = frequencyHeatColor(matrix[row][col], maxCount);
+        ctx.fillRect(x + 1, y + 1, Math.max(1, cellW - 2), Math.max(1, cellH - 2));
+      }
+    }
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#667085';
+    ranges.forEach((range, index) => {
+      if (index % 2 !== 0 && index !== ranges.length - 1) return;
+      const x = left + index * cellW + cellW / 2;
+      ctx.save();
+      ctx.translate(x, height - 58);
+      ctx.rotate(-Math.PI / 4);
+      ctx.fillText(range.label, 0, 0);
+      ctx.restore();
+    });
+    ctx.textAlign = 'left';
+    ctx.fillText(t('rangeOrderAxis'), left, height - 18);
+
+    const legendX = width - 220;
+    const legendY = 26;
+    for (let i = 0; i < 80; i += 1) {
+      ctx.fillStyle = frequencyHeatColor(i + 1, 80);
+      ctx.fillRect(legendX + i * 2, legendY, 2, 10);
+    }
+    ctx.fillStyle = '#667085';
+    ctx.font = '800 11px "Noto Sans JP", sans-serif';
+    ctx.fillText(t('heatLow'), legendX, legendY + 26);
+    ctx.textAlign = 'right';
+    ctx.fillText(t('heatHigh'), legendX + 160, legendY + 26);
+    ctx.textAlign = 'left';
+  }
+
+  function getRecordGapBuckets(record) {
+    const ordered = record.entries.slice().sort((a, b) => a.order - b.order);
+    const buckets = [];
+    for (let i = 1; i < ordered.length; i += 1) {
+      const diff = Math.abs(ordered[i].rangeIndex - ordered[i - 1].rangeIndex);
+      if (diff === 1) buckets.push('adjacent');
+      else if (diff >= 2 && diff <= 3) buckets.push('twoThree');
+      else if (diff >= 4 && diff <= 5) buckets.push('fourFive');
+      else if (diff >= 6) buckets.push('sixPlus');
+    }
+    return buckets;
+  }
+
+  function countRecordStreaks(record) {
+    const ordered = record.entries.slice().sort((a, b) => a.order - b.order);
+    let current = 1;
+    const totals = { two: 0, three: 0, four: 0 };
+    const flush = () => {
+      if (current === 2) totals.two += 1;
+      if (current === 3) totals.three += 1;
+      if (current >= 4) totals.four += 1;
+      current = 1;
+    };
+    for (let i = 1; i < ordered.length; i += 1) {
+      if (Math.abs(ordered[i].rangeIndex - ordered[i - 1].rangeIndex) === 1) current += 1;
+      else flush();
+    }
+    flush();
+    return totals;
+  }
+
+  function countEntriesByRange(entries) {
+    const counts = {};
+    entries.forEach(entry => {
+      const label = getRangeLabel(entry.range);
+      counts[label] = (counts[label] || 0) + 1;
+    });
+    return Object.entries(counts).map(([label, value]) => ({ label, value })).sort((a, b) => b.value - a.value);
+  }
+
+  function getTopRangeLabel(entries) {
+    return countEntriesByRange(entries)[0]?.label || '';
+  }
+
+  function getGroupRates(entries) {
+    const totals = { low: 0, mid: 0, high: 0 };
+    entries.forEach(entry => { totals[getRangeGroup(entry.range)] += 1; });
+    const total = Math.max(1, entries.length);
+    return {
+      low: totals.low / total,
+      mid: totals.mid / total,
+      high: totals.high / total
+    };
+  }
+
+  function drawSimpleBars(canvas, rows, title, options = {}) {
+    if (!canvas) return;
+    const settings = typeof options === 'boolean' ? { lowerIsBetter: options } : options;
+    const ctx = setupCanvas(canvas);
+    const width = canvas.width;
+    const height = canvas.height;
+    drawChartTitle(ctx, title);
+    const filtered = rows.filter(row => Number.isFinite(row.value) && row.value > 0);
+    if (!filtered.length) return drawEmptyChart(ctx, width, height);
+    const max = Math.max(1, ...filtered.map(row => row.value));
+    const left = 42;
+    const bottom = height - 44;
+    const top = 54;
+    const barW = Math.max(24, (width - left - 30) / filtered.length - 12);
+    filtered.forEach((row, index) => {
+      const x = left + index * (barW + 12);
+      const h = Math.max(8, (row.value / max) * (bottom - top));
+      const y = bottom - h;
+      const grad = ctx.createLinearGradient(0, y, 0, bottom);
+      grad.addColorStop(0, settings.lowerIsBetter ? heatColor(row.value, max) : '#ff007f');
+      grad.addColorStop(1, settings.lowerIsBetter ? '#e9f8fb' : '#ff8ec4');
+      ctx.fillStyle = grad;
+      roundRect(ctx, x, y, barW, h, 9);
+      ctx.fill();
+      ctx.fillStyle = '#1b2330';
+      ctx.font = '800 12px "Noto Sans JP", sans-serif';
+      ctx.textAlign = 'center';
+      const displayValue = settings.valueFormatter ? settings.valueFormatter(row.value) : (Number.isInteger(row.value) ? row.value : row.value.toFixed(1));
+      ctx.fillText(displayValue, x + barW / 2, y - 8);
+      ctx.fillText(shortenText(row.label, settings.maxLabelLength || 9), x + barW / 2, bottom + 18);
+      ctx.textAlign = 'left';
+    });
+  }
+
+  function getLotteryRangeIndex(range) {
+    return getLotteryRanges().findIndex(item => item.key === range);
+  }
+
+  function getRangeLabel(range) {
+    return getLotteryRanges().find(item => item.key === range)?.label || String(range || '');
+  }
+
+  function getRangeGroup(range) {
+    const start = parseRangeStart(range);
+    if (start < 90) return 'low';
+    if (start < 170) return 'mid';
+    return 'high';
+  }
+
+  function getRangeGroupLabel(group) {
+    if (group === 'low') return t('distLowNo');
+    if (group === 'mid') return t('distMidNo');
+    return t('distHighNo');
+  }
+
+  function average(values) {
+    const valid = values.map(value => Number(value)).filter(value => Number.isFinite(value));
+    return valid.length ? valid.reduce((sum, value) => sum + value, 0) / valid.length : null;
+  }
+
+  function formatAvgOrder(value) {
+    return value ? `${value.toFixed(1)}${t('tourUnit')}` : '-';
+  }
+
+  function formatPercent(value) {
+    return `${Math.round((value || 0) * 100)}%`;
+  }
+
+  function frequencyHeatColor(value, maxValue) {
+    if (!value) return '#f3f4f6';
+    const ratio = Math.min(1, value / Math.max(maxValue, 1));
+    const red = Math.round(255 - ratio * 12);
+    const green = Math.round(244 - ratio * 174);
+    const blue = Math.round(249 - ratio * 108);
+    return `rgb(${red}, ${green}, ${blue})`;
+  }
+
+  function heatColor(value, maxAvg) {
+    if (!value) return '#f3f4f6';
+    const good = 1 - (value - 1) / Math.max(maxAvg - 1, 1);
+    const red = Math.round(255 - good * 8);
+    const green = Math.round(238 - good * 120);
+    const blue = Math.round(246 + good * 5);
+    return `rgb(${red}, ${green}, ${blue})`;
+  }
+
+  function shortenText(value, max) {
+    const text = String(value || '');
+    return text.length > max ? `${text.slice(0, Math.max(1, max - 3))}...` : text;
   }
 
   function formatCloudRecordLabel(record) {
