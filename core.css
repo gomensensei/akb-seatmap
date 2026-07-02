@@ -1,14 +1,18 @@
+@font-face { font-family: 'ITC Avant Garde Gothic Std Extra Light'; src: url('fonts/ITC Avant Garde Gothic Std Extra Light.woff2') format('woff2'); }
+@font-face { font-family: 'AR ADGothicJP'; src: url('fonts/jadhei01m.woff2') format('woff2'); }
+@font-face { font-family: 'KozGoPr6N'; src: url('fonts/KozGoPr6N-Medium.woff2') format('woff2'); }
+
 /* =========================================
    1. Gomensensei Core UI - Variables & Base (45度動態漸變)
    ========================================= */
 :root {
     --bg-grad-1: #e0eafc; --bg-grad-2: #cfdef3; --bg-grad-3: #FFB6C1; --bg-grad-4: #f8bbd0;
-    --primary: #FF4081; --primary-hover: #E91E63;
+    --primary: #F676A6; --primary-hover: #E55A8C;
     --text-main: #2C3E50; --text-sec: #7F8C8D;
 }
 
 body {
-    margin: 0; padding: 0; font-family: 'Noto Sans JP', sans-serif;
+    margin: 0; padding: 0; font-family: 'KozGoPr6N', 'AR ADGothicJP', 'Noto Sans JP', sans-serif;
     background: linear-gradient(-45deg, var(--bg-grad-1), var(--bg-grad-2), var(--bg-grad-3), var(--bg-grad-4));
     background-size: 400% 400%; animation: gradientBG 20s ease infinite;
     min-height: 100dvh; -webkit-tap-highlight-color: transparent;

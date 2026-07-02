@@ -190,8 +190,8 @@
     "heatHigh": "多",
     "filterYearOption": "{year}年",
     "filterMonthOption": "{month}月",
-    "privacy_promise": "明確な同意なしに、個人情報を開示することはありません。",
-    "privacyPromise": "明確な同意なしに、個人情報を開示することはありません。"
+    "privacy_promise": "同意なしにあなたのデータを公開しません。",
+    "privacyPromise": "同意なしにあなたのデータを公開しません。"
   },
   "zh": {
     "eyebrow": "AKB48 Theater Seat Memo",
@@ -384,8 +384,8 @@
     "heatHigh": "多",
     "filterYearOption": "{year}年",
     "filterMonthOption": "{month}月",
-    "privacy_promise": "未經你明確同意，不會披露你的個人資料。",
-    "privacyPromise": "未經你明確同意，不會披露你的個人資料。"
+    "privacy_promise": "未經你同意，不會公開你的資料。",
+    "privacyPromise": "未經你同意，不會公開你的資料。"
   },
   "zh-Hans": {
     "eyebrow": "AKB48 Theater Seat Memo",
@@ -578,8 +578,8 @@
     "heatHigh": "多",
     "filterYearOption": "{year}年",
     "filterMonthOption": "{month}月",
-    "privacy_promise": "未经你明确同意，不会披露你的个人资料。",
-    "privacyPromise": "未经你明确同意，不会披露你的个人资料。"
+    "privacy_promise": "未经你同意，不会公开你的资料。",
+    "privacyPromise": "未经你同意，不会公开你的资料。"
   },
   "ko": {
     "eyebrow": "AKB48 Theater Seat Memo",
@@ -772,8 +772,8 @@
     "heatHigh": "높음",
     "filterYearOption": "{year}년",
     "filterMonthOption": "{month}월",
-    "privacy_promise": "명시적인 동의 없이 개인 정보를 공개하지 않습니다.",
-    "privacyPromise": "명시적인 동의 없이 개인 정보를 공개하지 않습니다."
+    "privacy_promise": "동의 없이 데이터를 공개하지 않습니다.",
+    "privacyPromise": "동의 없이 데이터를 공개하지 않습니다."
   },
   "th": {
     "eyebrow": "AKB48 Theater Seat Memo",
@@ -966,8 +966,8 @@
     "heatHigh": "มาก",
     "filterYearOption": "ปี {year}",
     "filterMonthOption": "เดือน {month}",
-    "privacy_promise": "เราจะไม่เปิดเผยข้อมูลส่วนบุคคลของคุณหากไม่ได้รับความยินยอมอย่างชัดเจนจากคุณ",
-    "privacyPromise": "เราจะไม่เปิดเผยข้อมูลส่วนบุคคลของคุณหากไม่ได้รับความยินยอมอย่างชัดเจนจากคุณ"
+    "privacy_promise": "เราจะไม่เปิดเผยข้อมูลของคุณต่อสาธารณะโดยไม่ได้รับความยินยอมจากคุณ",
+    "privacyPromise": "เราจะไม่เปิดเผยข้อมูลของคุณต่อสาธารณะโดยไม่ได้รับความยินยอมจากคุณ"
   },
   "id": {
     "eyebrow": "AKB48 Theater Seat Memo",
@@ -1160,8 +1160,8 @@
     "heatHigh": "Tinggi",
     "filterYearOption": "{year}",
     "filterMonthOption": "Bulan {month}",
-    "privacy_promise": "Kami tidak akan mengungkapkan data pribadi Anda tanpa persetujuan jelas dari Anda.",
-    "privacyPromise": "Kami tidak akan mengungkapkan data pribadi Anda tanpa persetujuan jelas dari Anda."
+    "privacy_promise": "Kami tidak akan mempublikasikan data Anda tanpa persetujuan Anda.",
+    "privacyPromise": "Kami tidak akan mempublikasikan data Anda tanpa persetujuan Anda."
   },
   "en": {
     "eyebrow": "AKB48 Theater Seat Memo",
@@ -1354,7 +1354,7 @@
     "heatHigh": "High",
     "filterYearOption": "{year}",
     "filterMonthOption": "Month {month}",
-    "privacy_promise": "We will not disclose your personal data without your explicit consent.",
-    "privacyPromise": "We will not disclose your personal data without your explicit consent."
+    "privacy_promise": "We will not make your data public without your consent.",
+    "privacyPromise": "We will not make your data public without your consent."
   }
 }
