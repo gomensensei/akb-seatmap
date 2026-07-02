@@ -191,7 +191,9 @@
     "filterYearOption": "{year}年",
     "filterMonthOption": "{month}月",
     "privacy_promise": "同意なしにあなたのデータを公開しません。",
-    "privacyPromise": "同意なしにあなたのデータを公開しません。"
+    "privacyPromise": "同意なしにあなたのデータを公開しません。",
+    "reportBug": "バグ報告",
+    "donate": "カンパ"
   },
   "zh": {
     "eyebrow": "AKB48 Theater Seat Memo",
@@ -385,7 +387,9 @@
     "filterYearOption": "{year}年",
     "filterMonthOption": "{month}月",
     "privacy_promise": "未經你同意，不會公開你的資料。",
-    "privacyPromise": "未經你同意，不會公開你的資料。"
+    "privacyPromise": "未經你同意，不會公開你的資料。",
+    "reportBug": "回報錯誤",
+    "donate": "捐款支持"
   },
   "zh-Hans": {
     "eyebrow": "AKB48 Theater Seat Memo",
@@ -579,7 +583,9 @@
     "filterYearOption": "{year}年",
     "filterMonthOption": "{month}月",
     "privacy_promise": "未经你同意，不会公开你的资料。",
-    "privacyPromise": "未经你同意，不会公开你的资料。"
+    "privacyPromise": "未经你同意，不会公开你的资料。",
+    "reportBug": "报告错误",
+    "donate": "捐款支持"
   },
   "ko": {
     "eyebrow": "AKB48 Theater Seat Memo",
@@ -773,7 +779,9 @@
     "filterYearOption": "{year}년",
     "filterMonthOption": "{month}월",
     "privacy_promise": "동의 없이 데이터를 공개하지 않습니다.",
-    "privacyPromise": "동의 없이 데이터를 공개하지 않습니다."
+    "privacyPromise": "동의 없이 데이터를 공개하지 않습니다.",
+    "reportBug": "버그 신고",
+    "donate": "후원하기"
   },
   "th": {
     "eyebrow": "AKB48 Theater Seat Memo",
@@ -967,7 +975,9 @@
     "filterYearOption": "ปี {year}",
     "filterMonthOption": "เดือน {month}",
     "privacy_promise": "เราจะไม่เปิดเผยข้อมูลของคุณต่อสาธารณะโดยไม่ได้รับความยินยอมจากคุณ",
-    "privacyPromise": "เราจะไม่เปิดเผยข้อมูลของคุณต่อสาธารณะโดยไม่ได้รับความยินยอมจากคุณ"
+    "privacyPromise": "เราจะไม่เปิดเผยข้อมูลของคุณต่อสาธารณะโดยไม่ได้รับความยินยอมจากคุณ",
+    "reportBug": "รายงานข้อผิดพลาด",
+    "donate": "สนับสนุน"
   },
   "id": {
     "eyebrow": "AKB48 Theater Seat Memo",
@@ -1161,7 +1171,9 @@
     "filterYearOption": "{year}",
     "filterMonthOption": "Bulan {month}",
     "privacy_promise": "Kami tidak akan mempublikasikan data Anda tanpa persetujuan Anda.",
-    "privacyPromise": "Kami tidak akan mempublikasikan data Anda tanpa persetujuan Anda."
+    "privacyPromise": "Kami tidak akan mempublikasikan data Anda tanpa persetujuan Anda.",
+    "reportBug": "Laporkan Bug",
+    "donate": "Donasi"
   },
   "en": {
     "eyebrow": "AKB48 Theater Seat Memo",
@@ -1355,6 +1367,8 @@
     "filterYearOption": "{year}",
     "filterMonthOption": "Month {month}",
     "privacy_promise": "We will not make your data public without your consent.",
-    "privacyPromise": "We will not make your data public without your consent."
+    "privacyPromise": "We will not make your data public without your consent.",
+    "reportBug": "Report Bug",
+    "donate": "Donate"
   }
 }

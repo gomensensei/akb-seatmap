@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#ff4081" />
   <title>AKB48 Seat Memo</title>
-  <link rel="stylesheet" href="core.css?v=3.6.0" />
-  <link rel="stylesheet" href="style.css?v=3.6.0" />
+  <link rel="stylesheet" href="core.css?v=3.6.1" />
+  <link rel="stylesheet" href="style.css?v=3.6.1" />
 </head>
 <body class="native-feel">
   <div class="app-shell">
@@ -285,8 +285,20 @@
     </section>
 
     <footer class="site-footer apple-glass-3d">
-      <p data-i18n="siteDisclaimer">本サイトはファンである ゴメン先生 (gomensensei) が作成した非公式のものであり、AKB48運営とは一切関係ありません。各権利者に帰属します。</p>
-      <p data-i18n="privacyPromise">未經你同意，不會公開你的資料。</p>
+      <div class="footer-copy">
+        <p data-i18n="siteDisclaimer">本サイトはファンである ゴメン先生 (gomensensei) が作成した非公式のものであり、AKB48運営とは一切関係ありません。各権利者に帰属します。</p>
+        <p data-i18n="privacyPromise">未經你同意，不會公開你的資料。</p>
+      </div>
+      <div class="footer-links">
+        <a href="https://x.com/sorrysir_gomen" target="_blank" rel="noopener">
+          <span class="footer-link-icon footer-link-icon-bug" aria-hidden="true"></span>
+          <span data-i18n="reportBug">回報錯誤</span>
+        </a>
+        <a href="https://www.paypal.com/paypalme/gomensensei" target="_blank" rel="noopener">
+          <span class="footer-link-icon footer-link-icon-heart" aria-hidden="true"></span>
+          <span data-i18n="donate">捐款支持</span>
+        </a>
+      </div>
     </footer>
 
   </div>
@@ -305,6 +317,6 @@
   <script src="core.js?v=3.6.0"></script>
   <script src="seatmap-data.js?v=3.6.0"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="script.js?v=3.6.0"></script>
+  <script src="script.js?v=3.6.1"></script>
 </body>
 </html>
