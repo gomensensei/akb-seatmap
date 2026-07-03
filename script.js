@@ -2079,9 +2079,10 @@
 
   function shouldOpenPreview() {
     const ua = navigator.userAgent;
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(ua) || (navigator.maxTouchPoints > 1 && window.innerWidth <= 768) || window.matchMedia('(max-width: 768px)').matches;
     const isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     const isSafari = /^((?!chrome|android|crios|fxios|edg).)*safari/i.test(ua);
-    return isIOS || isSafari;
+    return isMobile || isIOS || isSafari;
   }
 
   function openModal(dataUrl) { els.exportPreview.src = dataUrl; els.modal.hidden = false; }
