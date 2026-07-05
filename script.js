@@ -7,6 +7,7 @@
   const SUPABASE_URL = 'https://jappifgnjssqxvjodgiv.supabase.co';
   const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_oXfJyHkRtn1BHBw-9ictBQ__01qBCZg';
   const CLOUD_TABLE = 'seat_memo_records';
+  const CLOUD_RECORD_LIMIT = 200;
   const state = { lang: 'ja', i18n: {}, selectedId: null, performanceId: 'reset', eventDate: '', displayName: '', entryNumber: '', tourRound: '', mapZoom: 1 };
   const cloud = { client: null, user: null, records: [], publicLotteryRecords: [], selectedId: '', busy: false, ready: false };
   const lotteryState = { entries: [], nextOrder: 1, selfRange: '' };
@@ -700,6 +701,11 @@
 
   async function saveCloudMemo() {
     if (!requireCloudLogin()) return;
+    if (cloud.records.length >= CLOUD_RECORD_LIMIT) {
+      setCloudMessage(cloudRecordLimitMessage());
+      showToast(cloudRecordLimitMessage());
+      return;
+    }
     setCloudBusy(true);
     const row = buildCloudRow();
     const result = await writeCloudRow('insert', row);
@@ -757,7 +763,7 @@
       .select('id,event_date,performance_title,seat_label,payload,public_consent,public_status,created_at,updated_at')
       .eq('user_id', cloud.user.id)
       .order('updated_at', { ascending: false })
-      .limit(50);
+      .limit(CLOUD_RECORD_LIMIT);
     setCloudBusy(false);
     if (error) { console.warn(error); if (!options.silent) showToast(t('cloudActionFailed')); return; }
     cloud.records = Array.isArray(data) ? data : [];
@@ -859,11 +865,30 @@
   }
 
   function formatCloudError(error) {
+    if (isCloudRecordLimitError(error)) return cloudRecordLimitMessage();
     const parts = [t('cloudActionFailed')];
     if (error.code) parts.push(`[${error.code}]`);
     if (error.message) parts.push(error.message);
     if (error.details) parts.push(error.details);
     return parts.join(' ');
+  }
+
+  function isCloudRecordLimitError(error) {
+    const text = [error?.message, error?.details, error?.hint].filter(Boolean).join(' ');
+    return /tool48_seatmap_cloud_record_limit_reached|seat_memo_records limit/i.test(text);
+  }
+
+  function cloudRecordLimitMessage() {
+    const messages = {
+      ja: 'クラウド保存は最大200件までです。古い保存を削除してから新しく保存してください。',
+      zh: '雲端最多可保存 200 筆紀錄。請先刪除舊紀錄，再保存新紀錄。',
+      'zh-Hans': '云端最多可保存 200 条记录。请先删除旧记录，再保存新记录。',
+      ko: '클라우드에는 최대 200개 기록까지 저장할 수 있습니다. 새로 저장하기 전에 이전 기록을 삭제해 주세요.',
+      th: 'Cloud save เก็บได้สูงสุด 200 รายการ โปรดลบรายการเก่าก่อนบันทึกรายการใหม่',
+      id: 'Cloud save dapat menyimpan hingga 200 catatan. Hapus catatan lama sebelum menyimpan yang baru.',
+      en: 'Cloud save can keep up to 200 records. Delete old records before saving a new one.'
+    };
+    return messages[state.lang] || messages.en;
   }
 
   function sendCloudRow(action, row, recordId) {
