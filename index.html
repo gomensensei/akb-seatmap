@@ -3,10 +3,12 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="tool48-turnstile-site-key" content="" />
   <meta name="theme-color" content="#ff4081" />
   <title>AKB48 Seat Memo</title>
   <link rel="stylesheet" href="core.css?v=3.6.1" />
   <link rel="stylesheet" href="style.css?v=3.6.1" />
+  <link rel="stylesheet" href="tool48-install.css?v=20260706-security" />
 </head>
 <body class="native-feel">
   <div class="app-shell">
@@ -30,6 +32,7 @@
           <input id="cloudPasswordInput" class="control-input cloud-email-input" type="password" autocomplete="current-password" minlength="6" data-i18n-placeholder="cloudPasswordPlaceholder" placeholder="6+ characters" />
           <button class="primary-button memo-button" id="cloudSignInBtn" type="submit" data-auth-action="signin" data-i18n="cloudSignIn">Sign in</button>
           <button class="secondary-button memo-button" id="cloudSignUpBtn" type="submit" data-auth-action="signup" data-i18n="cloudCreateAccount">Create account</button>
+          <button class="tool48-reset-link" id="cloudResetPasswordBtn" type="button" data-tool48-reset-password>Forgot password</button>
         </form>
         <div id="cloudActions" class="cloud-actions" data-tool48-auth-logged-in hidden>
           <span class="cloud-user-pill" id="cloudUserLabel"></span>
@@ -317,6 +320,8 @@
   <script src="core.js?v=3.6.0"></script>
   <script src="seatmap-data.js?v=3.6.0"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="tool48-security.js?v=20260706-security"></script>
   <script src="script.js?v=3.6.3-mobile-preview"></script>
+  <script src="tool48-install.js?v=20260706-security"></script>
 </body>
 </html>

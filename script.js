@@ -44,6 +44,7 @@
     cloudPasswordInput: document.getElementById('cloudPasswordInput'),
     cloudSignInBtn: document.getElementById('cloudSignInBtn'),
     cloudSignUpBtn: document.getElementById('cloudSignUpBtn'),
+    cloudResetPasswordBtn: document.getElementById('cloudResetPasswordBtn'),
     cloudActions: document.getElementById('cloudActions'),
     cloudUserLabel: document.getElementById('cloudUserLabel'),
     accountToggleBtn: document.getElementById('accountToggleBtn'),
@@ -303,6 +304,7 @@
       els.accountPopover.hidden = true;
     });
     els.cloudLoginForm?.addEventListener('submit', loginCloudAccount);
+    els.cloudResetPasswordBtn?.addEventListener('click', resetCloudPassword);
     els.cloudLogoutBtn?.addEventListener('click', logoutCloudAccount);
     els.cloudSaveBtn?.addEventListener('click', saveCloudMemo);
     els.refreshCloudRecordsBtn?.addEventListener('click', () => loadCloudRecords());
@@ -671,16 +673,69 @@
     if (action === 'signup' && !nickname) { setCloudMessage(t('cloudMissingSignup')); showToast(t('cloudMissingSignup')); return; }
     setCloudBusy(true);
     setCloudMessage(action === 'signup' ? t('cloudSigningUp') : t('cloudSigningIn'));
-    const result = action === 'signup'
-      ? await cloud.client.auth.signUp({ email, password, options: { data: { display_name: nickname }, emailRedirectTo: window.location.href } })
-      : await cloud.client.auth.signInWithPassword({ email, password });
+    let result;
+    try {
+      const captchaToken = await window.Tool48Security?.getCaptchaToken(action, event.currentTarget);
+      result = action === 'signup'
+        ? await cloud.client.auth.signUp({
+          email,
+          password,
+          options: window.Tool48Security?.authOptions({ data: { display_name: nickname }, emailRedirectTo: window.location.href }, captchaToken)
+            || { data: { display_name: nickname }, emailRedirectTo: window.location.href }
+        })
+        : await cloud.client.auth.signInWithPassword(
+          window.Tool48Security?.signInPayload(email, password, captchaToken) || { email, password }
+        );
+    } catch (error) {
+      result = { error };
+    }
     setCloudBusy(false);
-    if (result.error) { console.warn(result.error); setCloudMessage(result.error.message || t('cloudActionFailed')); showToast(t('cloudActionFailed')); return; }
+    if (result.error) {
+      console.warn(result.error);
+      window.Tool48Security?.recordAuthFailure(email);
+      window.Tool48Security?.resetCaptcha(event.currentTarget);
+      setCloudMessage(result.error.message || t('cloudActionFailed'));
+      showToast(t('cloudActionFailed'));
+      return;
+    }
+    window.Tool48Security?.clearAuthFailures(email);
     cloud.user = result.data.session?.user || cloud.user;
     setCloudMessage(action === 'signup' && !result.data.session ? t('cloudSignupNeedsConfirm') : t('cloudSignedIn'));
     updatePersistenceUI();
     if (cloud.user) await loadCloudRecords({ silent: true });
     if (cloud.user) toggleAccountPopover(false);
+  }
+
+  async function resetCloudPassword(event) {
+    if (!cloud.client) { showToast(t('cloudUnavailable')); return; }
+    const form = event.currentTarget.closest('form') || els.cloudLoginForm;
+    const email = els.cloudEmailInput?.value.trim() || '';
+    if (!email) {
+      const message = window.Tool48Security?.text('resetMissingEmail') || t('cloudMissingEmailPassword');
+      setCloudMessage(message);
+      showToast(message);
+      return;
+    }
+    setCloudBusy(true);
+    setCloudMessage(window.Tool48Security?.text('resetSending') || '');
+    try {
+      if (window.Tool48Security?.requestPasswordReset) {
+        await window.Tool48Security.requestPasswordReset(cloud.client, email, form);
+      } else {
+        await cloud.client.auth.resetPasswordForEmail(email, { redirectTo: window.location.href });
+      }
+      const message = window.Tool48Security?.text('resetSent') || '';
+      setCloudMessage(message);
+      showToast(message || t('cloudActionFailed'));
+    } catch (error) {
+      console.warn(error);
+      window.Tool48Security?.recordAuthFailure(email);
+      window.Tool48Security?.resetCaptcha(form);
+      setCloudMessage(error.message || (window.Tool48Security?.text('authFailed') || t('cloudActionFailed')));
+      showToast(t('cloudActionFailed'));
+    } finally {
+      setCloudBusy(false);
+    }
   }
 
   async function logoutCloudAccount() {
@@ -777,6 +832,26 @@
 
   async function loadPublicLotteryRecords(options = {}) {
     if (!cloud.client) return;
+    const viewResult = await cloud.client
+      .from('seat_memo_public_lottery')
+      .select('id,event_date,performance_title,public_payload,created_at')
+      .order('event_date', { ascending: true })
+      .limit(500);
+    if (!viewResult.error) {
+      cloud.publicLotteryRecords = (Array.isArray(viewResult.data) ? viewResult.data : [])
+        .map(record => ({
+          id: record.id,
+          event_date: record.event_date,
+          performance_title: record.performance_title,
+          created_at: record.created_at,
+          public_consent: true,
+          public_status: 'approved',
+          payload: anonymizeLotteryPayload(record.public_payload)
+        }))
+        .filter(record => record.payload?.type === 'lottery-entry');
+      return;
+    }
+
     const { data, error } = await cloud.client
       .from(CLOUD_TABLE)
       .select('id,event_date,performance_title,payload,public_consent,public_status,created_at')
@@ -790,7 +865,29 @@
       cloud.publicLotteryRecords = [];
       return;
     }
-    cloud.publicLotteryRecords = (Array.isArray(data) ? data : []).filter(record => record.payload?.type === 'lottery-entry');
+    cloud.publicLotteryRecords = (Array.isArray(data) ? data : [])
+      .filter(record => record.payload?.type === 'lottery-entry')
+      .map(record => ({ ...record, payload: anonymizeLotteryPayload(record.payload) }));
+  }
+
+  function anonymizeLotteryPayload(payload = {}) {
+    const performance = payload.performance && typeof payload.performance === 'object'
+      ? { id: payload.performance.id || '', label: payload.performance.label || '' }
+      : null;
+    return {
+      version: payload.version || 1,
+      type: 'lottery-entry',
+      source: 'anonymous-public',
+      savedAt: payload.savedAt || '',
+      eventDate: payload.eventDate || '',
+      performance,
+      entries: (Array.isArray(payload.entries) ? payload.entries : [])
+        .map(entry => ({
+          range: entry.range || '',
+          order: Number(entry.order) || null
+        }))
+        .filter(entry => entry.range && entry.order)
+    };
   }
 
   function buildCloudRow() {
@@ -865,6 +962,8 @@
   }
 
   function formatCloudError(error) {
+    const guardMessage = window.Tool48Security?.guardMessage(error);
+    if (guardMessage) return guardMessage;
     if (isCloudRecordLimitError(error)) return cloudRecordLimitMessage();
     const parts = [t('cloudActionFailed')];
     if (error.code) parts.push(`[${error.code}]`);
@@ -918,7 +1017,7 @@
       els.cloudLoginForm.hidden = loggedIn || !cloud.ready;
       els.cloudLoginForm.setAttribute('aria-hidden', loggedIn || !cloud.ready ? 'true' : 'false');
     }
-    [els.cloudNicknameInput, els.cloudEmailInput, els.cloudPasswordInput, els.cloudSignInBtn, els.cloudSignUpBtn].forEach(node => {
+    [els.cloudNicknameInput, els.cloudEmailInput, els.cloudPasswordInput, els.cloudSignInBtn, els.cloudSignUpBtn, els.cloudResetPasswordBtn].forEach(node => {
       if (node) node.disabled = cloud.busy || loggedIn || !cloud.ready;
     });
     if (els.cloudActions) {
