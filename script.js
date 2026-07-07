@@ -313,6 +313,7 @@
     els.refreshCloudRecordsBtn?.addEventListener('click', () => loadCloudRecords());
     els.cloudRecordsTable?.addEventListener('click', handleCloudRecordsTableClick);
     els.refreshLotteryRecordsBtn?.addEventListener('click', () => refreshLotteryRecordsView());
+    els.lotteryRecordsList?.addEventListener('click', handleLotteryRecordsClick);
     els.lotteryPerformanceSelect?.addEventListener('change', () => {});
     els.lotteryDateInput?.addEventListener('input', () => {});
     els.saveLotteryCloudBtn?.addEventListener('click', saveLotteryCloudRecord);
@@ -971,6 +972,17 @@
     return result.data;
   }
 
+  async function writeCloudPartial(row, recordId) {
+    const result = await sendCloudRow('update', row, recordId);
+    if (result.error) {
+      console.warn(result.error);
+      setCloudMessage(formatCloudError(result.error));
+      showToast(t('cloudActionFailed'));
+      return null;
+    }
+    return result.data;
+  }
+
   function toMinimalCloudRow(row, action) {
     const minimal = { payload: row.payload };
     if (action !== 'update') minimal.user_id = row.user_id;
@@ -1098,6 +1110,7 @@
       const card = document.createElement('article');
       card.className = 'lottery-record-card';
       card.dataset.id = record.id || '';
+      card.dataset.scope = record.scope || '';
       const chips = record.entries
         .slice()
         .sort((a, b) => Number(a.order) - Number(b.order))
@@ -1110,8 +1123,7 @@
         <div class="lottery-record-head">
           <div class="lottery-record-title-wrap">
             <h3>${escapeHtml(record.performanceTitle || t('performance'))}</h3>
-            <p>${escapeHtml(record.eventLabel || '-')}</p>
-            <p>${escapeHtml(formatMessage('lotteryRecordUpdatedAt', { time: record.updatedLabel || '-' }))}</p>
+            <p class="lottery-record-event-time">${escapeHtml(formatMessage('lotteryRecordEventDate', { time: record.eventLabel || t('lotteryRecordEventMissing') }))}</p>
           </div>
           <span class="lottery-record-badge ${record.isPublic ? 'is-public' : 'is-private'}">
             ${escapeHtml(record.isPublic ? t('lotteryPublicBadge') : t('lotteryPrivateBadge'))}
@@ -1119,6 +1131,14 @@
         </div>
         <div class="lottery-record-chip-grid">${chips}</div>
         ${record.isPublic ? `<p class="lottery-record-note">${escapeHtml(t('lotteryRecordPublicNote'))}</p>` : ''}
+        ${record.canEdit ? `
+          <div class="lottery-record-actions">
+            <button type="button" data-lottery-action="load">${escapeHtml(t('lotteryLoadRecord'))}</button>
+            <button type="button" data-lottery-action="update">${escapeHtml(t('lotteryUpdateRecord'))}</button>
+            <button type="button" data-lottery-action="toggle-public">${escapeHtml(record.isPublic ? t('lotteryMakePrivate') : t('lotteryMakePublic'))}</button>
+            <button type="button" class="delete" data-lottery-action="delete">${escapeHtml(t('lotteryDeleteRecord'))}</button>
+          </div>
+        ` : ''}
       `;
       els.lotteryRecordsList.appendChild(card);
     });
@@ -1132,12 +1152,15 @@
       .map(record => normalizeSavedLotteryRecord(record, 'community'));
     return dedupeLotteryRecords([...own, ...community])
       .filter(record => record.entries.length)
-      .sort((a, b) => (b.updatedValue || '').localeCompare(a.updatedValue || ''));
+      .sort((a, b) => {
+        const dateSort = (b.eventValue || b.updatedValue || '').localeCompare(a.eventValue || a.updatedValue || '');
+        return dateSort || (b.updatedValue || '').localeCompare(a.updatedValue || '');
+      });
   }
 
   function normalizeSavedLotteryRecord(record, scope) {
     const payload = record.payload || {};
-    const eventValue = normalizeLotteryDateTime(payload.eventDate || record.event_date || payload.savedAt || record.created_at);
+    const eventValue = normalizeLotteryDateTime(payload.eventDate || record.event_date || '');
     const updatedValue = record.updated_at || record.created_at || payload.savedAt || eventValue || '';
     const isPublic = Boolean(record.public_consent) || scope === 'community';
     return {
@@ -1150,6 +1173,7 @@
       updatedLabel: formatSavedAt(updatedValue),
       performanceTitle: record.performance_title || payload.performance?.label || '',
       isPublic,
+      canEdit: scope === 'mine' && Boolean(record.id) && Boolean(cloud.user),
       entries: (payload.entries || [])
         .map(entry => ({ ...entry, order: Number(entry.order), range: entry.range || '' }))
         .filter(entry => entry.range && Number.isFinite(entry.order))
@@ -1182,6 +1206,103 @@
     const start = parseRangeStart(range);
     if (!Number.isFinite(start)) return range || '-';
     return String(start);
+  }
+
+  function handleLotteryRecordsClick(event) {
+    const button = event.target.closest('button[data-lottery-action]');
+    const card = event.target.closest('.lottery-record-card[data-id]');
+    if (!button || !card) return;
+    const id = card.dataset.id;
+    if (!id) return;
+    const action = button.dataset.lotteryAction;
+    if (action === 'load') loadLotteryRecord(id);
+    if (action === 'update') updateLotteryRecord(id);
+    if (action === 'toggle-public') toggleLotteryRecordPublic(id);
+    if (action === 'delete') deleteLotteryRecord(id);
+  }
+
+  function getOwnLotteryRecord(recordId) {
+    return cloud.records.find(record => record.id === recordId && record.payload?.type === 'lottery-entry') || null;
+  }
+
+  function loadLotteryRecord(recordId) {
+    const record = getOwnLotteryRecord(recordId);
+    if (!record) { showToast(t('cloudActionFailed')); return; }
+    try {
+      applyLotteryPayload(record.payload || {}, Boolean(record.public_consent));
+      switchTab('lottery');
+    } catch (error) {
+      console.warn(error);
+      showToast(t('cloudActionFailed'));
+    }
+  }
+
+  function applyLotteryPayload(payload, publicConsent) {
+    const performanceId = payload.performance?.id || '';
+    if (els.lotteryPerformanceSelect && performanceId && SEATMAP_DATA.performances.some(performance => performance.id === performanceId)) {
+      els.lotteryPerformanceSelect.value = performanceId;
+    }
+    if (els.lotteryDateInput) els.lotteryDateInput.value = normalizeLotteryDateTime(payload.eventDate || '');
+    lotteryState.entries = (Array.isArray(payload.entries) ? payload.entries : [])
+      .map(entry => ({
+        range: entry.range || '',
+        order: Number(entry.order),
+        isSelf: Boolean(entry.isSelf)
+      }))
+      .filter(entry => entry.range && Number.isFinite(entry.order));
+    lotteryState.selfRange = lotteryState.entries.find(entry => entry.isSelf)?.range || '';
+    lotteryState.nextOrder = Math.max(0, ...lotteryState.entries.map(entry => entry.order)) + 1;
+    if (els.lotteryPublicConsent) els.lotteryPublicConsent.checked = Boolean(publicConsent);
+    renderLotteryRanges();
+    renderDistributionChart();
+  }
+
+  async function updateLotteryRecord(recordId) {
+    if (!requireCloudLogin()) return;
+    if (!getOwnLotteryRecord(recordId)) { showToast(t('cloudActionFailed')); return; }
+    if (!lotteryState.entries.length) { showToast(t('lotteryNoMarks')); return; }
+    if (!window.confirm(t('lotteryConfirmUpdate'))) return;
+    const row = buildLotteryCloudRow();
+    row.updated_at = new Date().toISOString();
+    setCloudBusy(true);
+    const result = await writeCloudRow('update', row, recordId);
+    setCloudBusy(false);
+    if (!result) return;
+    await loadCloudRecords({ silent: true });
+    showToast(t('lotteryUpdated'));
+  }
+
+  async function toggleLotteryRecordPublic(recordId) {
+    if (!requireCloudLogin()) return;
+    const record = getOwnLotteryRecord(recordId);
+    if (!record) { showToast(t('cloudActionFailed')); return; }
+    const nextPublic = !record.public_consent;
+    setCloudBusy(true);
+    const result = await writeCloudPartial({
+      public_consent: nextPublic,
+      public_status: nextPublic ? 'pending' : 'private',
+      updated_at: new Date().toISOString()
+    }, recordId);
+    setCloudBusy(false);
+    if (!result) return;
+    await loadCloudRecords({ silent: true });
+    showToast(t('lotteryPublicUpdated'));
+  }
+
+  async function deleteLotteryRecord(recordId) {
+    if (!requireCloudLogin()) return;
+    if (!getOwnLotteryRecord(recordId)) { showToast(t('cloudActionFailed')); return; }
+    if (!window.confirm(t('lotteryConfirmDelete'))) return;
+    setCloudBusy(true);
+    const { error } = await cloud.client.from(CLOUD_TABLE).delete().eq('id', recordId);
+    setCloudBusy(false);
+    if (error) {
+      console.warn(error);
+      showToast(t('cloudActionFailed'));
+      return;
+    }
+    await loadCloudRecords({ silent: true });
+    showToast(t('lotteryDeleted'));
   }
 
   function handleCloudRecordsTableClick(event) {
@@ -1420,7 +1541,7 @@
 
   function normalizeLotteryRecord(record, scope) {
     const payload = record.payload || {};
-    const eventDate = extractDateOnly(record.event_date || payload.eventDate || payload.savedAt);
+    const eventDate = extractDateOnly(record.event_date || payload.eventDate);
     return {
       id: record.id,
       scope,
