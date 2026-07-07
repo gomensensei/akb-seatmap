@@ -66,6 +66,7 @@
       <button class="tab-button active" type="button" data-tab="seat" data-i18n="tabSeatMemo">座位メモ</button>
       <button class="tab-button" type="button" data-tab="records" data-i18n="tabSeatRecords">座位已保存紀錄</button>
       <button class="tab-button" type="button" data-tab="lottery" data-i18n="tabLotteryRecord">抽選入場会紀錄</button>
+      <button class="tab-button" type="button" data-tab="lottery-records" data-i18n="tabLotterySaved">已保存入場會紀錄</button>
       <button class="tab-button" type="button" data-tab="distribution" data-i18n="tabLotteryDistribution">抽選入場会分布図</button>
     </nav>
 
@@ -210,6 +211,20 @@
           <button class="primary-button" id="saveLotteryCloudBtn" type="button" data-i18n="saveLotteryCloud">Save lottery record</button>
           <button class="secondary-button" id="downloadLotteryBtn" type="button" data-i18n="downloadLottery">Output image</button>
         </div>
+      </div>
+    </section>
+
+    <section id="tab-lottery-records" class="tab-panel">
+      <div class="records-card apple-glass-3d">
+        <div class="section-head compact">
+          <div>
+            <p class="eyebrow" data-i18n="lotterySavedEyebrow">Bingo records</p>
+            <h2 data-i18n="lotterySavedTitle">已保存入場會紀錄</h2>
+          </div>
+          <button class="secondary-button memo-button" id="refreshLotteryRecordsBtn" type="button" data-i18n="refreshRecords">Refresh</button>
+        </div>
+        <div id="lotteryRecordsList" class="lottery-record-list"></div>
+        <div id="lotteryRecordsEmpty" class="record-empty" data-i18n="lotterySavedEmpty">尚未有入場會紀錄。</div>
       </div>
     </section>
 

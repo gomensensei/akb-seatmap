@@ -56,6 +56,9 @@
     refreshCloudRecordsBtn: document.getElementById('refreshCloudRecordsBtn'),
     cloudRecordsTable: document.getElementById('cloudRecordsTable'),
     cloudRecordsEmpty: document.getElementById('cloudRecordsEmpty'),
+    refreshLotteryRecordsBtn: document.getElementById('refreshLotteryRecordsBtn'),
+    lotteryRecordsList: document.getElementById('lotteryRecordsList'),
+    lotteryRecordsEmpty: document.getElementById('lotteryRecordsEmpty'),
     lotteryPerformanceSelect: document.getElementById('lotteryPerformanceSelect'),
     lotteryDateInput: document.getElementById('lotteryDateInput'),
     lotteryLeftColumn: document.getElementById('lotteryLeftColumn'),
@@ -309,6 +312,7 @@
     els.cloudSaveBtn?.addEventListener('click', saveCloudMemo);
     els.refreshCloudRecordsBtn?.addEventListener('click', () => loadCloudRecords());
     els.cloudRecordsTable?.addEventListener('click', handleCloudRecordsTableClick);
+    els.refreshLotteryRecordsBtn?.addEventListener('click', () => refreshLotteryRecordsView());
     els.lotteryPerformanceSelect?.addEventListener('change', () => {});
     els.lotteryDateInput?.addEventListener('input', () => {});
     els.saveLotteryCloudBtn?.addEventListener('click', saveLotteryCloudRecord);
@@ -337,6 +341,7 @@
     buildDistributionFilters();
     renderLotteryRanges();
     renderCloudRecordsTable();
+    renderLotteryRecordsList();
     renderDistributionChart();
     updatePersistenceUI();
   }
@@ -647,10 +652,12 @@
       cloud.user = session?.user || null;
       if (!cloud.user) {
         cloud.records = [];
-        cloud.publicLotteryRecords = [];
         cloud.selectedId = '';
         renderCloudRecordsTable();
-        renderDistributionChart();
+        loadPublicLotteryRecords({ silent: true }).then(() => {
+          renderLotteryRecordsList();
+          renderDistributionChart();
+        });
         updatePersistenceUI();
         return;
       }
@@ -658,6 +665,7 @@
     });
     if (cloud.user) await loadCloudRecords({ silent: true });
     await loadPublicLotteryRecords({ silent: true });
+    renderLotteryRecordsList();
     updatePersistenceUI();
   }
 
@@ -749,6 +757,7 @@
     cloud.publicLotteryRecords = [];
     cloud.selectedId = '';
     renderCloudRecordsTable();
+    renderLotteryRecordsList();
     renderDistributionChart();
     updatePersistenceUI();
     showToast(t('cloudLoggedOut'));
@@ -825,13 +834,17 @@
     if (cloud.selectedId && !cloud.records.some(record => record.id === cloud.selectedId)) cloud.selectedId = '';
     renderCloudRecordsTable();
     await loadPublicLotteryRecords({ silent: true });
+    renderLotteryRecordsList();
     renderDistributionChart();
     updatePersistenceUI(options.silent ? undefined : 'cloudRecordsLoaded');
     if (!options.silent) showToast(formatMessage('cloudRecordsLoaded', { count: cloud.records.length }));
   }
 
   async function loadPublicLotteryRecords(options = {}) {
-    if (!cloud.client) return;
+    if (!cloud.client) {
+      renderLotteryRecordsList();
+      return;
+    }
     const viewResult = await cloud.client
       .from('seat_memo_public_lottery')
       .select('id,event_date,performance_title,public_payload,created_at')
@@ -849,6 +862,7 @@
           payload: anonymizeLotteryPayload(record.public_payload)
         }))
         .filter(record => record.payload?.type === 'lottery-entry');
+      renderLotteryRecordsList();
       return;
     }
 
@@ -863,11 +877,13 @@
       console.warn('Public lottery records unavailable', error);
       if (!options.silent) setCloudMessage(`${t('publicStatsBlocked')} ${error.message || ''}`.trim());
       cloud.publicLotteryRecords = [];
+      renderLotteryRecordsList();
       return;
     }
     cloud.publicLotteryRecords = (Array.isArray(data) ? data : [])
       .filter(record => record.payload?.type === 'lottery-entry')
       .map(record => ({ ...record, payload: anonymizeLotteryPayload(record.payload) }));
+    renderLotteryRecordsList();
   }
 
   function anonymizeLotteryPayload(payload = {}) {
@@ -1073,6 +1089,101 @@
     });
   }
 
+  function renderLotteryRecordsList() {
+    if (!els.lotteryRecordsList) return;
+    const records = getVisibleLotteryRecords();
+    els.lotteryRecordsList.innerHTML = '';
+    if (els.lotteryRecordsEmpty) els.lotteryRecordsEmpty.hidden = records.length > 0;
+    records.forEach(record => {
+      const card = document.createElement('article');
+      card.className = 'lottery-record-card';
+      card.dataset.id = record.id || '';
+      const chips = record.entries
+        .slice()
+        .sort((a, b) => Number(a.order) - Number(b.order))
+        .map(entry => `
+          <span class="lottery-record-chip${entry.isSelf ? ' is-self' : ''}" title="${escapeHtml(formatLotteryOrder(entry))}">
+            ${escapeHtml(formatRangeStartLabel(entry.range))}
+          </span>
+        `).join('');
+      card.innerHTML = `
+        <div class="lottery-record-head">
+          <div class="lottery-record-title-wrap">
+            <h3>${escapeHtml(record.performanceTitle || t('performance'))}</h3>
+            <p>${escapeHtml(record.eventLabel || '-')}</p>
+            <p>${escapeHtml(formatMessage('lotteryRecordUpdatedAt', { time: record.updatedLabel || '-' }))}</p>
+          </div>
+          <span class="lottery-record-badge ${record.isPublic ? 'is-public' : 'is-private'}">
+            ${escapeHtml(record.isPublic ? t('lotteryPublicBadge') : t('lotteryPrivateBadge'))}
+          </span>
+        </div>
+        <div class="lottery-record-chip-grid">${chips}</div>
+        ${record.isPublic ? `<p class="lottery-record-note">${escapeHtml(t('lotteryRecordPublicNote'))}</p>` : ''}
+      `;
+      els.lotteryRecordsList.appendChild(card);
+    });
+  }
+
+  function getVisibleLotteryRecords() {
+    const own = cloud.records
+      .filter(record => record.payload?.type === 'lottery-entry')
+      .map(record => normalizeSavedLotteryRecord(record, 'mine'));
+    const community = cloud.publicLotteryRecords
+      .map(record => normalizeSavedLotteryRecord(record, 'community'));
+    return dedupeLotteryRecords([...own, ...community])
+      .filter(record => record.entries.length)
+      .sort((a, b) => (b.updatedValue || '').localeCompare(a.updatedValue || ''));
+  }
+
+  function normalizeSavedLotteryRecord(record, scope) {
+    const payload = record.payload || {};
+    const eventValue = normalizeLotteryDateTime(payload.eventDate || record.event_date || payload.savedAt || record.created_at);
+    const updatedValue = record.updated_at || record.created_at || payload.savedAt || eventValue || '';
+    const isPublic = Boolean(record.public_consent) || scope === 'community';
+    return {
+      id: record.id,
+      scope,
+      key: getLotteryRecordKey(payload),
+      eventValue,
+      eventLabel: formatEventDateForDisplay(eventValue),
+      updatedValue,
+      updatedLabel: formatSavedAt(updatedValue),
+      performanceTitle: record.performance_title || payload.performance?.label || '',
+      isPublic,
+      entries: (payload.entries || [])
+        .map(entry => ({ ...entry, order: Number(entry.order), range: entry.range || '' }))
+        .filter(entry => entry.range && Number.isFinite(entry.order))
+    };
+  }
+
+  function dedupeLotteryRecords(records) {
+    const map = new Map();
+    records.forEach(record => {
+      const key = record.id || record.key || `${record.scope}-${record.eventValue}-${record.performanceTitle}`;
+      const existing = map.get(key);
+      if (!existing || (record.updatedValue || '').localeCompare(existing.updatedValue || '') > 0) map.set(key, record);
+    });
+    const finalMap = new Map();
+    map.forEach(record => {
+      const key = record.key || `${record.eventValue}__${record.performanceTitle}`;
+      const existing = finalMap.get(key);
+      if (!existing || (record.updatedValue || '').localeCompare(existing.updatedValue || '') > 0) finalMap.set(key, record);
+    });
+    return Array.from(finalMap.values());
+  }
+
+  async function refreshLotteryRecordsView() {
+    if (cloud.user) await loadCloudRecords({ silent: true });
+    else await loadPublicLotteryRecords({ silent: true });
+    renderLotteryRecordsList();
+  }
+
+  function formatRangeStartLabel(range) {
+    const start = parseRangeStart(range);
+    if (!Number.isFinite(start)) return range || '-';
+    return String(start);
+  }
+
   function handleCloudRecordsTableClick(event) {
     const button = event.target.closest('button[data-action]');
     const row = event.target.closest('tr[data-id]');
@@ -1087,6 +1198,7 @@
     els.tabButtons.forEach(button => button.classList.toggle('active', button.dataset.tab === name));
     els.tabPanels.forEach(panel => panel.classList.toggle('active', panel.id === `tab-${name}`));
     if (name === 'records') loadCloudRecords({ silent: true });
+    if (name === 'lottery-records') refreshLotteryRecordsView();
     if (name === 'distribution') renderDistributionChart();
   }
 
@@ -1191,13 +1303,40 @@
     };
   }
 
+  function getLotteryRecordKey(payload = {}) {
+    const eventDate = normalizeLotteryDateTime(payload.eventDate || payload.savedAt || '');
+    const performanceKey = payload.performance?.id || payload.performance?.label || '';
+    return `${eventDate}__${performanceKey}`;
+  }
+
+  function normalizeLotteryDateTime(value) {
+    const text = String(value || '').trim();
+    if (!text) return '';
+    return text.slice(0, 16);
+  }
+
+  function findMatchingLotteryRecord(payload) {
+    if (!normalizeLotteryDateTime(payload.eventDate) || !(payload.performance?.id || payload.performance?.label)) return null;
+    const key = getLotteryRecordKey(payload);
+    if (!key || key === '__') return null;
+    return cloud.records
+      .filter(record => record.payload?.type === 'lottery-entry')
+      .find(record => getLotteryRecordKey(record.payload) === key) || null;
+  }
+
   async function saveLotteryCloudRecord() {
     if (!requireCloudLogin()) return;
     if (!lotteryState.entries.length) { showToast(t('lotteryNoMarks')); return; }
     setCloudBusy(true);
-    const result = await writeCloudRow('insert', buildLotteryCloudRow());
+    const row = buildLotteryCloudRow();
+    const existing = findMatchingLotteryRecord(row.payload);
+    if (existing) row.updated_at = new Date().toISOString();
+    const result = existing
+      ? await writeCloudRow('update', row, existing.id)
+      : await writeCloudRow('insert', row);
     setCloudBusy(false);
     if (!result) return;
+    cloud.selectedId = result.id || existing?.id || '';
     await loadCloudRecords({ silent: true });
     showToast(t('lotterySaved'));
   }

@@ -5,11 +5,15 @@
   --tool48-account-bg: rgba(255,255,255,.58);
   --tool48-account-border: rgba(255,255,255,.6);
   --ink: #1b2330;
-  --tool48-font-cjk: 'Noto Sans TC', 'Microsoft JhengHei', 'PingFang TC', 'Noto Sans SC', 'Microsoft YaHei', 'KozGoPr6N', 'AR ADGothicJP', 'Noto Sans JP', sans-serif;
+  --tool48-font-cjk: 'Noto Sans TC', 'Microsoft JhengHei', 'PingFang TC', 'Noto Sans SC', 'Microsoft YaHei', 'Noto Sans JP', 'Yu Gothic UI', 'Meiryo', sans-serif;
+  --tool48-font-ja: 'Noto Sans JP', 'Yu Gothic UI', 'Yu Gothic', 'Meiryo', 'Hiragino Sans', 'KozGoPr6N', sans-serif;
+  --tool48-font-sc: 'Noto Sans SC', 'Microsoft YaHei', 'PingFang SC', 'Noto Sans TC', 'Noto Sans JP', sans-serif;
 }
 
 * { box-sizing: border-box; }
 body { font-family: var(--tool48-font-cjk); font-size: 15px; line-height: 1.46; }
+html[lang="ja"] body { font-family: var(--tool48-font-ja); }
+html[lang="zh-Hans"] body { font-family: var(--tool48-font-sc); }
 button, select, input, .nav-icon, .field-label { flex-shrink: 0; white-space: nowrap; }
 .selected-pill { flex-shrink: 1; }
 
@@ -131,10 +135,24 @@ button:disabled { opacity:.48; cursor:not-allowed; transform:none!important; }
 .public-consent strong { color:var(--ink); font-size:.86rem; font-weight:900; }
 .public-consent small { color:var(--text-sec); font-size:.76rem; font-weight:750; line-height:1.45; overflow-wrap:anywhere; }
 .lottery-actions { margin-top:0; }
+.lottery-record-list { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:12px; }
+.lottery-record-card { min-width:0; padding:14px; border-radius:18px; background:rgba(255,255,255,.66); border:1px solid rgba(255,64,129,.15); box-shadow:0 8px 20px rgba(27,35,48,.05); }
+.lottery-record-head { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:10px; align-items:start; margin-bottom:12px; }
+.lottery-record-title-wrap { min-width:0; }
+.lottery-record-title-wrap h3 { margin:0 0 5px; color:var(--ink); font-size:.98rem; font-weight:900; line-height:1.28; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.lottery-record-title-wrap p { margin:0; color:var(--text-sec); font-size:.72rem; font-weight:800; line-height:1.4; }
+.lottery-record-badge { display:inline-flex; align-items:center; justify-content:center; min-height:26px; padding:0 9px; border-radius:999px; font-size:.68rem; font-weight:900; white-space:nowrap; }
+.lottery-record-badge.is-public { color:#0f766e; background:rgba(20,184,166,.12); border:1px solid rgba(20,184,166,.22); }
+.lottery-record-badge.is-private { color:var(--seat-pink-strong); background:rgba(255,255,255,.82); border:1px solid rgba(255,64,129,.18); }
+.lottery-record-chip-grid { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:7px; }
+.lottery-record-chip { display:grid; place-items:center; min-height:30px; border-radius:10px; color:var(--ink); background:rgba(255,255,255,.9); border:1px solid rgba(255,64,129,.18); font-size:.78rem; font-weight:900; line-height:1; box-shadow:inset 0 1px 0 rgba(255,255,255,.9); }
+.lottery-record-chip.is-self { color:#fff; background:linear-gradient(135deg,var(--seat-pink-strong),#ff87bd); border-color:rgba(255,64,129,.38); }
+.lottery-record-note { margin:10px 0 0; color:#0f766e; font-size:.72rem; font-weight:850; line-height:1.45; }
 .distribution-filters { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; margin-bottom:14px; padding:12px; border-radius:18px; background:rgba(255,255,255,.56); border:1px solid rgba(255,64,129,.12); }
-.distribution-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
-.chart-box { min-width:0; padding:12px; border-radius:18px; background:rgba(255,255,255,.58); border:1px solid rgba(255,255,255,.7); }
-.chart-box-wide { grid-column:1 / -1; }
+#tab-distribution .records-card { max-width:1060px; margin-inline:auto; }
+.distribution-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; max-width:960px; margin-inline:auto; }
+.chart-box { min-width:0; max-width:475px; justify-self:stretch; padding:10px; border-radius:16px; background:rgba(255,255,255,.58); border:1px solid rgba(255,255,255,.7); }
+.chart-box-wide { grid-column:1 / -1; width:100%; max-width:960px; justify-self:center; }
 .chart-box h3 { margin:0 0 10px; color:var(--ink); font-size:1rem; font-weight:900; line-height:1.3; }
 .chart-note { margin:-4px 0 8px; color:var(--text-sec); font-size:.82rem; font-weight:750; line-height:1.55; }
 .distribution-canvas { display:block; width:100%; max-width:100%; height:auto; margin-top:8px; border-radius:14px; background:#fff; box-shadow:0 10px 24px rgba(27,35,48,.07); }
@@ -748,6 +766,12 @@ button, select, input, textarea {
   .button-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .lottery-form-row,
   .distribution-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .lottery-record-list { grid-template-columns: 1fr; gap: 10px; }
+  .lottery-record-card { padding: 12px; border-radius: 16px; }
+  .lottery-record-title-wrap h3 { font-size: .9rem; white-space: normal; }
+  .lottery-record-chip-grid { gap: 5px; }
+  .lottery-record-chip { min-height: 28px; border-radius: 9px; font-size: .72rem; }
+  #tab-distribution .records-card { max-width: none; }
   .distribution-filters .control-input { min-width: 0; }
   .field-label,
   .memo-title,
